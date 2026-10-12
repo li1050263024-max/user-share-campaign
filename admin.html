@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>话本分享官 · 收集后台</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #f7f6f6; color: #2f2629; font-size: 14px;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    button { cursor: pointer; border: none; background: none; }
+    .hidden { display: none !important; }
+
+    /* 登录 */
+    .login { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .login-box {
+      width: 340px; background: #fff; border-radius: 16px; padding: 28px;
+      border: 1px solid #efe9e9; box-shadow: 0 8px 30px rgba(60, 40, 45, .06);
+    }
+    .login-box h1 { font-size: 20px; margin-bottom: 6px; }
+    .login-box p { font-size: 13px; color: #85787b; margin-bottom: 18px; }
+    .login-box input {
+      width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid #e8e1e1; outline: none; margin-bottom: 12px;
+    }
+    .login-box input:focus { border-color: #e8879f; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+      padding: 8px 14px; border-radius: 9px; font-size: 13px; font-weight: 600;
+      background: #fff; border: 1px solid #e8e1e1; color: #4a4044; white-space: nowrap;
+    }
+    .btn:hover { border-color: #d9cfcf; }
+    .btn.pri { background: #e8879f; border-color: #e8879f; color: #fff; }
+    .btn.pri:hover { background: #dc7690; }
+    .btn.block { width: 100%; padding: 11px; }
+    .btn.danger { color: #c0504d; }
+    .btn.sm { padding: 4px 9px; font-size: 12px; border-radius: 7px; }
+    .btn.ok { color: #2f8a52; border-color: #cfe8d8; background: #f2faf5; }
+    .btn.no { color: #b9534f; border-color: #f0d6d5; background: #fdf5f5; }
+
+    /* 布局 */
+    header {
+      position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid #efe9e9;
+      display: flex; align-items: center; gap: 12px; padding: 14px 28px;
+    }
+    header h1 { font-size: 18px; }
+    header .tag { font-size: 12px; color: #a85a6e; background: #fff1f4; padding: 2px 8px; border-radius: 6px; }
+    header .sp { flex: 1; }
+    main { padding: 22px 28px 40px; max-width: 1480px; margin: 0 auto; }
+
+    .stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 18px; }
+    .stat { background: #fff; border: 1px solid #efe9e9; border-radius: 12px; padding: 14px 16px; }
+    .stat span { font-size: 12px; color: #85787b; }
+    .stat b { display: block; font-size: 24px; margin-top: 4px; }
+    .stat.ing b { color: #c2802e; }
+    .stat.ok b { color: #2f8a52; }
+    .stat.reject b { color: #b9534f; }
+
+    .filters {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+      background: #fff; border: 1px solid #efe9e9; border-radius: 12px; padding: 12px 14px; margin-bottom: 12px;
+    }
+    .filters label { font-size: 12px; color: #85787b; display: flex; align-items: center; gap: 6px; }
+    .filters select, .filters input {
+      padding: 7px 10px; border-radius: 8px; border: 1px solid #e8e1e1; background: #fff; outline: none; font-size: 13px;
+    }
+    .filters input { width: 220px; }
+    .filters .count { margin-left: auto; font-size: 12px; color: #85787b; }
+
+    .table-wrap { background: #fff; border: 1px solid #efe9e9; border-radius: 12px; overflow: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 1280px; }
+    th, td { padding: 11px 12px; text-align: left; border-bottom: 1px solid #f3eeee; vertical-align: top; font-size: 13px; }
+    th { background: #faf8f8; font-size: 12px; color: #6e5f63; font-weight: 700; white-space: nowrap; position: sticky; top: 0; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fdfcfc; }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .act-name { font-weight: 700; white-space: nowrap; }
+    .kind { display: inline-block; margin-top: 3px; font-size: 11px; padding: 1px 6px; border-radius: 4px; background: #f5f1f1; color: #6e5f63; }
+    .type { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+    .type.book { background: #fff1ee; color: #c8687f; }
+    .type.agent { background: #f0f3ff; color: #6f82c8; }
+    .link { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .link a { color: #4a6fb5; text-decoration: none; }
+    .link a:hover { text-decoration: underline; }
+    .code { font-family: Consolas, monospace; font-weight: 700; letter-spacing: 1px; }
+    .shots { display: flex; gap: 4px; }
+    .shots img { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid #eee; cursor: zoom-in; }
+    .st { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+    .st.ing { background: #fff6e8; color: #c2802e; }
+    .st.ok { background: #eef8f1; color: #2f8a52; }
+    .st.reject { background: #fbf1f1; color: #b9534f; }
+    .reason { font-size: 11px; color: #b9534f; margin-top: 4px; max-width: 140px; }
+    .rw { font-size: 12px; line-height: 1.7; white-space: nowrap; }
+    .rw .got { color: #2f8a52; }
+    .rw .wait { color: #a0938f; }
+    .ops { display: flex; flex-wrap: wrap; gap: 4px; max-width: 150px; }
+    .muted { color: #a0938f; }
+    .empty { padding: 50px 0; text-align: center; color: #85787b; font-size: 13px; line-height: 1.9; }
+
+    .viewer {
+      position: fixed; inset: 0; z-index: 50; background: rgba(20, 14, 16, .85);
+      display: none; align-items: center; justify-content: center; padding: 30px; cursor: zoom-out;
+    }
+    .viewer.show { display: flex; }
+    .viewer img { max-width: 100%; max-height: 100%; border-radius: 8px; }
+    .toast {
+      position: fixed; left: 50%; top: 80px; transform: translateX(-50%); z-index: 60;
+      background: rgba(47, 38, 41, .9); color: #fff; padding: 9px 16px; border-radius: 10px; font-size: 13px;
+      opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    .toast.show { opacity: 1; }
+    @media (max-width: 900px) {
+      .stats { grid-template-columns: repeat(3, 1fr); }
+      header, main { padding-left: 14px; padding-right: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="login" id="login">
+    <form class="login-box" id="loginForm">
+      <h1>收集后台</h1>
+      <p>话本分享官征集活动 · 用户提交信息管理</p>
+      <input type="password" id="pass" placeholder="请输入后台密码" autocomplete="current-password" />
+      <button class="btn pri block" type="submit">进入后台</button>
+    </form>
+  </div>
+
+  <div id="panel" class="hidden">
+    <header>
+      <h1>话本分享官 · 收集后台</h1>
+      <span class="tag">用户提交信息</span>
+      <span class="sp"></span>
+      <button class="btn" id="refresh">刷新</button>
+      <button class="btn" id="export">导出 CSV</button>
+      <a class="btn" href="index.html" target="_blank">打开活动页</a>
+      <button class="btn danger" id="clear">清空数据</button>
+      <button class="btn" id="logout">退出</button>
+    </header>
+    <main>
+      <div class="stats" id="stats"></div>
+      <div class="filters">
+        <label>活动
+          <select id="fAct">
+            <option value="">全部</option>
+            <option value="act1">官方素材分享</option>
+            <option value="act2">原创内容分享</option>
+            <option value="act3">评论区分享</option>
+          </select>
+        </label>
+        <label>宣传内容
+          <select id="fType">
+            <option value="">全部</option>
+            <option value="book">书籍</option>
+            <option value="agent">智能体</option>
+          </select>
+        </label>
+        <label>提交类型
+          <select id="fKind">
+            <option value="">全部</option>
+            <option value="首次提交">首次提交</option>
+            <option value="数据更新">数据更新</option>
+            <option value="评论分享">评论分享</option>
+          </select>
+        </label>
+        <label>审核状态
+          <select id="fStatus">
+            <option value="">全部</option>
+            <option value="ing">审核中</option>
+            <option value="ok">审核通过</option>
+            <option value="reject">未通过</option>
+          </select>
+        </label>
+        <input id="fKey" placeholder="搜索帖子链接 / 分享码" />
+        <span class="count" id="count"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>提交时间</th><th>活动 / 类型</th><th>宣传内容</th><th>平台</th><th>帖子链接</th>
+              <th>分享码</th><th style="text-align:right">浏览量</th><th style="text-align:right">点赞+收藏</th>
+              <th>截图</th><th>审核状态</th><th>奖励领取</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div class="empty hidden" id="empty"></div>
+      </div>
+    </main>
+  </div>
+
+  <div class="viewer" id="viewer"><img alt="" /></div>
+  <div class="toast" id="toast"></div>
+
+  <script src="store.js?v=20261012c"></script>
+  <script>
+  (function () {
+    'use strict';
+    var $ = function (id) { return document.getElementById(id); };
+    var SESSION = 'hb_admin_ok';
+
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+    var toastTimer;
+    function toast(msg) {
+      var el = $('toast');
+      el.textContent = msg; el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { el.classList.remove('show'); }, 1800);
+    }
+    function num(v) { return v === undefined || v === '' ? '<span class="muted">-</span>' : (+v).toLocaleString(); }
+
+    // ---------- 登录 ----------
+    function showPanel() { $('login').classList.add('hidden'); $('panel').classList.remove('hidden'); render(); }
+    if (sessionStorage.getItem(SESSION) === '1') showPanel();
+    $('loginForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!HB.checkAdminPass($('pass').value)) return toast('密码错误');
+      sessionStorage.setItem(SESSION, '1');
+      showPanel();
+    });
+    $('logout').addEventListener('click', function () {
+      sessionStorage.removeItem(SESSION);
+      location.reload();
+    });
+
+    // ---------- 数据 ----------
+    function filtered() {
+      var act = $('fAct').value, type = $('fType').value, kind = $('fKind').value, st = $('fStatus').value;
+      var key = $('fKey').value.trim().toLowerCase();
+      return HB.getRecords().filter(function (r) {
+        if (act && r.act !== act) return false;
+        if (type && r.type !== type) return false;
+        if (kind && r.kind !== kind) return false;
+        if (st && HB.statusOf(r).c !== st) return false;
+        if (key && (String(r.link || '') + ' ' + String(r.code || '')).toLowerCase().indexOf(key) < 0) return false;
+        return true;
+      });
+    }
+
+    function renderStats(all) {
+      var c = { ing: 0, ok: 0, reject: 0 }, book = 0, agent = 0, claimed = 0;
+      all.forEach(function (r) {
+        c[HB.statusOf(r).c]++;
+        if (r.type === 'agent') agent++; else book++;
+        claimed += (r.claimed || []).length;
+      });
+      var items = [
+        ['', '累计提交', all.length],
+        ['ing', '待审核', c.ing],
+        ['ok', '审核通过', c.ok],
+        ['reject', '未通过', c.reject],
+        ['', '书籍 / 智能体', book + ' / ' + agent],
+        ['', '已领取奖励', claimed]
+      ];
+      $('stats').innerHTML = items.map(function (x) {
+        return '<div class="stat ' + x[0] + '"><span>' + x[1] + '</span><b>' + x[2] + '</b></div>';
+      }).join('');
+    }
+
+    function rowHtml(r) {
+      var st = HB.statusOf(r);
+      var rewards = HB.rewardsOf(r);
+      var claimed = r.claimed || [];
+      var rw = rewards.length ? rewards.map(function (w) {
+        var got = claimed.indexOf(w.key) >= 0;
+        return '<div class="' + (got ? 'got' : 'wait') + '">' + (got ? '已领 ' : '未领 ') + esc(w.name) + '</div>';
+      }).join('') : '<span class="muted">-</span>';
+      var shots = r.shots && r.shots.length
+        ? '<div class="shots">' + r.shots.map(function (s) { return '<img src="' + s + '" alt="" data-view>'; }).join('') + '</div>'
+        : '<span class="muted">' + (r.shotsDropped ? '未保存' : '-') + '</span>';
+      var ops = [];
+      if (st.c !== 'ok') ops.push('<button class="btn sm ok" data-op="ok" data-id="' + r.id + '">通过</button>');
+      if (st.c !== 'reject') ops.push('<button class="btn sm no" data-op="reject" data-id="' + r.id + '">驳回</button>');
+      if (st.c !== 'ing') ops.push('<button class="btn sm" data-op="ing" data-id="' + r.id + '">重置</button>');
+      ops.push('<button class="btn sm danger" data-op="del" data-id="' + r.id + '">删除</button>');
+      return '<tr>' +
+        '<td style="white-space:nowrap">' + HB.fmtTime(r.time) + '</td>' +
+        '<td><div class="act-name">' + esc(r.actTitle || HB.ACT_TITLES[r.act]) + '</div><span class="kind">' + esc(r.kind) + '</span></td>' +
+        '<td><span class="type ' + r.type + '">' + HB.TYPES[r.type].name + '</span></td>' +
+        '<td style="white-space:nowrap">' + esc(r.platform || '-') + '</td>' +
+        '<td class="link"><a href="' + esc(r.link) + '" target="_blank" rel="noopener" title="' + esc(r.link) + '">' + esc(r.link) + '</a></td>' +
+        '<td class="code">' + esc(r.code || '-') + '</td>' +
+        '<td class="num">' + num(r.views) + '</td>' +
+        '<td class="num">' + num(r.interact) + '</td>' +
+        '<td>' + shots + '</td>' +
+        '<td><span class="st ' + st.c + '">' + st.t + '</span>' +
+          (st.c === 'reject' && r.rejectReason ? '<div class="reason">' + esc(r.rejectReason) + '</div>' : '') + '</td>' +
+        '<td class="rw">' + rw + '</td>' +
+        '<td><div class="ops">' + ops.join('') + '</div></td>' +
+        '</tr>';
+    }
+
+    function render() {
+      var all = HB.getRecords();
+      var list = filtered();
+      renderStats(all);
+      $('rows').innerHTML = list.map(rowHtml).join('');
+      $('count').textContent = '共 ' + list.length + ' 条';
+      var empty = $('empty');
+      if (list.length) { empty.classList.add('hidden'); return; }
+      empty.classList.remove('hidden');
+      empty.innerHTML = all.length ? '没有符合筛选条件的记录'
+        : '暂无用户提交数据<br>数据保存在浏览器本地，需要在同一浏览器中打开活动页提交后，才会显示在这里';
+    }
+
+    ['fAct', 'fType', 'fKind', 'fStatus'].forEach(function (id) { $(id).addEventListener('change', render); });
+    $('fKey').addEventListener('input', render);
+    $('refresh').addEventListener('click', function () { render(); toast('已刷新'); });
+    window.addEventListener('storage', function (e) { if (e.key === HB.KEY) render(); });
+
+    // ---------- 操作 ----------
+    $('rows').addEventListener('click', function (e) {
+      var img = e.target.closest('img[data-view]');
+      if (img) {
+        $('viewer').querySelector('img').src = img.src;
+        $('viewer').classList.add('show');
+        return;
+      }
+      var btn = e.target.closest('[data-op]');
+      if (!btn) return;
+      var id = btn.getAttribute('data-id'), op = btn.getAttribute('data-op');
+      if (op === 'del') {
+        if (!confirm('确定删除这条提交记录？')) return;
+        HB.saveRecords(HB.getRecords().filter(function (r) { return String(r.id) !== id; }));
+        toast('已删除');
+      } else if (op === 'reject') {
+        var reason = prompt('请输入驳回原因（将展示给用户）', '截图未展示完整的后台浏览量数据');
+        if (reason === null) return;
+        HB.updateRecord(id, { status: 'reject', rejectReason: reason.trim() });
+        toast('已驳回');
+      } else {
+        HB.updateRecord(id, { status: op, rejectReason: '' });
+        toast(op === 'ok' ? '已审核通过，用户可领取奖励' : '已重置为审核中');
+      }
+      render();
+    });
+    $('viewer').addEventListener('click', function () { $('viewer').classList.remove('show'); });
+
+    $('clear').addEventListener('click', function () {
+      if (!confirm('确定清空全部提交数据？此操作不可恢复。')) return;
+      HB.saveRecords([]);
+      render();
+      toast('已清空');
+    });
+
+    $('export').addEventListener('click', function () {
+      var list = filtered();
+      if (!list.length) return toast('没有可导出的数据');
+      var head = ['提交时间', '活动', '提交类型', '宣传内容', '平台', '帖子链接', '分享码', '浏览量', '点赞+收藏', '截图数', '审核状态', '驳回原因', '可领奖励', '已领奖励'];
+      var lines = list.map(function (r) {
+        var rewards = HB.rewardsOf(r), claimed = r.claimed || [];
+        return [
+          HB.fmtTime(r.time), r.actTitle || HB.ACT_TITLES[r.act], r.kind, HB.TYPES[r.type].name, r.platform || '',
+          r.link, r.code || '', r.views || '', r.interact || '', (r.shots || []).length,
+          HB.statusOf(r).t, r.rejectReason || '',
+          rewards.map(function (w) { return w.name; }).join('；'),
+          rewards.filter(function (w) { return claimed.indexOf(w.key) >= 0; }).map(function (w) { return w.name; }).join('；')
+        ];
+      });
+      var csv = [head].concat(lines).map(function (row) {
+        return row.map(function (v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(',');
+      }).join('\r\n');
+      var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = '话本分享官提交数据_' + HB.fmtTime(Date.now()).replace(/[: ]/g, '-') + '.csv';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      toast('已导出 ' + list.length + ' 条');
+    });
+  })();
+  </script>
+</body>
+</html>

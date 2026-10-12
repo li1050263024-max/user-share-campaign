@@ -5,39 +5,8 @@
   var screen = document.getElementById('screen');
 
   // ---------------- 数据 ----------------
-  var TYPES = {
-    book: { name: '书籍' },
-    agent: { name: '智能体' }
-  };
-
-  var REWARD = {
-    book: {
-      base: '50 泡泡币',
-      baseDesc: '小说分享 · 每日首次有效分享',
-      tiers: [
-        { lv: '50', rw: '100 泡泡币' },
-        { lv: '100', rw: '会员 1 小时' },
-        { lv: '200', rw: '会员 3 小时' },
-        { lv: '500', rw: '会员 1 天' },
-        { lv: '1000', rw: '会员 15 天' },
-        { lv: '2000', rw: '会员 30 天' },
-        { lv: '10000+', rw: '现金奖励 100 元', top: true }
-      ]
-    },
-    agent: {
-      base: '30 轮对话额度',
-      baseDesc: '智能体分享 · 每日首次有效分享',
-      tiers: [
-        { lv: '50', rw: '50 轮对话额度' },
-        { lv: '100', rw: '100 轮对话额度' },
-        { lv: '200', rw: '250 轮对话额度' },
-        { lv: '500', rw: '50 活动金币' },
-        { lv: '1000', rw: '100 活动金币' },
-        { lv: '2000', rw: '200 活动金币' },
-        { lv: '10000+', rw: '现金奖励 100 元', top: true }
-      ]
-    }
-  };
+  var TYPES = HB.TYPES;
+  var REWARD = HB.REWARD;
 
   var ACTS = {
     act1: {
@@ -161,28 +130,21 @@
   function addUsed(act) { store.set('used_' + act + '_' + todayKey(), usedToday(act) + 1); }
   function shareCode() { return store.get('code', ''); }
 
-  function getRecords() { return store.get('records', []); }
+  var getRecords = HB.getRecords;
+  var recordStatus = HB.statusOf;
+  var fmtTime = HB.fmtTime;
   function addRecord(rec) {
     var list = getRecords();
     rec.id = Date.now();
     rec.time = Date.now();
+    rec.code = shareCode();
+    rec.status = 'ing';
+    rec.claimed = [];
     list.unshift(rec);
-    if (store.set('records', list)) return;
+    if (HB.saveRecords(list)) return;
     rec.shots = [];
     rec.shotsDropped = true;
-    if (!store.set('records', list)) toast('本地存储空间不足，记录保存失败');
-  }
-  function recordStatus(r) {
-    return Date.now() - r.time > 864e5 ? { t: '审核通过', c: 'ok' } : { t: '审核中', c: 'ing' };
-  }
-  function fmtTime(ts) {
-    var d = new Date(ts);
-    function p(n) { return n < 10 ? '0' + n : n; }
-    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
-  }
-  function fmtNum(n) {
-    n = +n || 0;
-    return n >= 10000 ? (n / 10000).toFixed(1).replace(/\.0$/, '') + 'w' : String(n);
+    if (!HB.saveRecords(list)) toast('本地存储空间不足，记录保存失败');
   }
 
   // 截图压缩后再存，避免撑爆 localStorage
@@ -304,40 +266,91 @@
 
   function recordEntry() {
     var list = getRecords();
-    var views = 0, ing = 0;
-    list.forEach(function (r) { views += +r.views || 0; if (recordStatus(r).c === 'ing') ing++; });
+    var ing = 0, ok = 0;
+    list.forEach(function (r) {
+      var c = recordStatus(r).c;
+      if (c === 'ing') ing++;
+      if (c === 'ok') ok++;
+    });
     var latest = list.slice(0, 2).map(recordItem).join('');
     return '<div class="card"><div class="card-title">我的提交记录' +
       (list.length ? '<button class="sub link" data-go="records">查看全部 ›</button>' : '') + '</div>' +
       '<div class="rec-stats">' +
         '<div><b>' + list.length + '</b><span>累计提交</span></div>' +
         '<div><b>' + ing + '</b><span>审核中</span></div>' +
-        '<div><b>' + fmtNum(views) + '</b><span>累计浏览量</span></div>' +
+        '<div><b>' + ok + '</b><span>已通过</span></div>' +
       '</div>' +
       (list.length ? '<div class="rec-list">' + latest + '</div>'
         : '<p class="rec-empty">还没有提交记录，参与活动后可在这里查看帖子数据</p>') +
       '</div>';
   }
 
-  function recordItem(r) {
-    var st = recordStatus(r);
+  function recordRows(r, full) {
     var rows = [];
     rows.push(['宣传内容', TYPES[r.type].name]);
     if (r.platform) rows.push(['发布平台', r.platform]);
     if (r.views !== undefined && r.views !== '') rows.push(['浏览量', '<b>' + (+r.views).toLocaleString() + '</b>']);
     if (r.interact !== undefined) rows.push(['点赞 + 收藏', '<b>' + (+r.interact).toLocaleString() + '</b>']);
+    if (full && r.code) rows.push(['分享码', r.code]);
     rows.push(['提交时间', fmtTime(r.time)]);
-    return '<div class="rec-item">' +
-      '<div class="rec-hd"><span class="rec-act">' + r.actTitle + '</span><span class="rec-kind">' + r.kind + '</span>' +
-        '<span class="rec-st ' + st.c + '">' + st.t + '</span></div>' +
-      '<div class="rec-rows">' + rows.map(function (x) {
-        return '<div><span>' + x[0] + '</span><span>' + x[1] + '</span></div>';
-      }).join('') + '</div>' +
-      '<div class="rec-link" title="' + esc(r.link) + '">' + esc(r.link) + '</div>' +
-      (r.shots && r.shots.length ? '<div class="rec-shots">' + r.shots.map(function (s) {
-        return '<img src="' + s + '" alt="" data-view>';
-      }).join('') + '</div>' : (r.shotsDropped ? '<p class="field-hint">截图因存储空间不足未保存</p>' : '')) +
+    return '<div class="rec-rows">' + rows.map(function (x) {
+      return '<div><span>' + x[0] + '</span><span>' + x[1] + '</span></div>';
+    }).join('') + '</div>';
+  }
+
+  function recordHead(r) {
+    var st = recordStatus(r);
+    return '<div class="rec-hd"><span class="rec-act">' + r.actTitle + '</span><span class="rec-kind">' + r.kind + '</span>' +
+      '<span class="rec-st ' + st.c + '">' + st.t + '</span></div>';
+  }
+
+  function recordItem(r) {
+    var rewards = HB.rewardsOf(r);
+    var claimed = (r.claimed || []).length;
+    return '<div class="rec-item" data-go="record/' + r.id + '">' +
+      recordHead(r) + recordRows(r, false) +
+      '<div class="rec-foot"><span>' +
+        (rewards.length ? '奖励 ' + claimed + ' / ' + rewards.length + ' 已领取' : '暂无可领奖励') +
+      '</span><span class="more">查看详情 ›</span></div>' +
       '</div>';
+  }
+
+  function renderRecordDetail(id) {
+    var r = HB.findRecord(id);
+    var head = '<div class="page act ' + (r ? r.type : state.type) + '"><div class="topbar"><div class="row">' +
+      '<button class="back" data-back>‹</button><div class="ttl">记录详情</div><span class="spacer"></span></div></div>' +
+      '<div class="act-body">';
+    if (!r) {
+      app.innerHTML = head + '<div class="card"><p class="rec-empty">记录不存在或已被删除</p></div></div></div>';
+      return;
+    }
+    var st = recordStatus(r);
+    var rewards = HB.rewardsOf(r);
+    var claimed = r.claimed || [];
+    var rewardHtml = rewards.length ? rewards.map(function (w) {
+      var done = claimed.indexOf(w.key) >= 0;
+      var can = st.c === 'ok' && !done;
+      return '<div class="claim-row"><div class="claim-info"><b>' + w.name + '</b><span>' + w.desc + '</span></div>' +
+        '<button class="btn claim' + (done ? ' done' : '') + '" data-claim="' + w.key + '"' + (can ? '' : ' disabled') + '>' +
+        (done ? '已领取' : st.c === 'ok' ? '领取 ' + w.name : st.c === 'reject' ? '不可领取' : '审核通过后领取') +
+        '</button></div>';
+    }).join('') : '<p class="rec-empty">该记录暂无可领取的奖励</p>';
+
+    app.innerHTML = head +
+      '<div class="card">' + recordHead(r) + recordRows(r, true) +
+        '<div class="rec-link-row"><div class="rec-link" title="' + esc(r.link) + '">' + esc(r.link) + '</div>' +
+        '<button class="btn ghost" data-copy-link>复制</button></div>' +
+        (st.c === 'reject' && r.rejectReason ? '<div class="warn" style="margin-top:12px">未通过原因：' + esc(r.rejectReason) + '</div>' : '') +
+      '</div>' +
+      '<div class="card"><div class="card-title">上传截图<span class="sub">点击查看大图</span></div>' +
+        (r.shots && r.shots.length ? '<div class="rec-shots big">' + r.shots.map(function (s) {
+          return '<img src="' + s + '" alt="" data-view>';
+        }).join('') + '</div>' : '<p class="rec-empty">' + (r.shotsDropped ? '截图因存储空间不足未保存' : '未上传截图') + '</p>') +
+      '</div>' +
+      '<div class="card"><div class="card-title">奖励领取</div>' + rewardHtml +
+        (st.c === 'ing' ? '<p class="note">审核通过后即可领取对应奖励，普通内容 1 个工作日内完成审核。</p>' : '') +
+      '</div>' +
+      '</div></div>';
   }
 
   function renderRecords() {
@@ -615,6 +628,7 @@
     if (ACTS[key]) renderAct(key);
     else if (key === 'rules') renderRules();
     else if (key === 'records') { state.recFilter = 'all'; renderRecords(); }
+    else if (key.indexOf('record/') === 0) renderRecordDetail(key.slice(7));
     else renderHome();
     screen.scrollTop = 0;
   }
@@ -712,6 +726,23 @@
       var parts = el.getAttribute('data-del').split(':');
       state.shots[parts[0]].splice(+parts[1], 1);
       renderKeepingForm(act);
+      return;
+    }
+    if (el.hasAttribute('data-claim')) {
+      var rid = location.hash.replace('#/record/', '');
+      var rec = HB.findRecord(rid);
+      if (!rec || HB.statusOf(rec).c !== 'ok') return;
+      var key = el.getAttribute('data-claim');
+      var got = (rec.claimed || []).concat(key);
+      HB.updateRecord(rid, { claimed: got });
+      var w = HB.rewardsOf(rec).filter(function (x) { return x.key === key; })[0];
+      renderRecordDetail(rid);
+      toast('领取成功：' + (w ? w.name : '奖励') + '，已发放至话本账号');
+      return;
+    }
+    if (el.hasAttribute('data-copy-link')) {
+      var cur = HB.findRecord(location.hash.replace('#/record/', ''));
+      if (cur) copyText(cur.link);
       return;
     }
     if (el.hasAttribute('data-rec-filter')) {

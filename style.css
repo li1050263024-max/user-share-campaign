@@ -511,6 +511,28 @@ input, select, textarea { font: inherit; }
 .rec-shots { display: flex; gap: 8px; margin-top: 10px; }
 .rec-shots img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid #f1ecec; cursor: zoom-in; }
 .upload .thumb-img img { cursor: zoom-in; }
+.rec-item { cursor: pointer; }
+.rec-foot {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 8px; padding-top: 8px; border-top: 1px dashed #f1ecec; font-size: 12px; color: var(--muted);
+}
+.rec-foot .more { color: var(--pri-deep); font-weight: 600; }
+.act .card > .rec-item .rec-foot { margin-bottom: -2px; }
+.rec-st.reject { background: #f6f3f3; color: #a05a5a; }
+.rec-link-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.rec-link-row .rec-link { flex: 1; min-width: 0; margin-top: 0; }
+.rec-shots.big { flex-wrap: wrap; margin-top: 0; }
+.rec-shots.big img { width: 96px; height: 128px; }
+.claim-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px; border-radius: 12px; background: var(--soft); margin-bottom: 8px;
+}
+.claim-row:last-of-type { margin-bottom: 0; }
+.claim-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.claim-info b { font-size: 14px; color: #2f2629; }
+.claim-info span { font-size: 12px; color: var(--muted); }
+.btn.claim { flex: none; padding: 8px 14px; }
+.btn.claim.done { background: #f2efef; color: #8a7c7f; opacity: 1; }
 .rec-tabs { display: flex; gap: 8px; margin-top: 12px; }
 .rec-tabs button {
   font-size: 13px; padding: 5px 12px; border-radius: 14px; background: rgba(255,255,255,.85); color: #6e5f63; font-weight: 600;
