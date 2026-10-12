@@ -518,6 +518,11 @@ input, select, textarea { font: inherit; }
 }
 .rec-foot .more { color: var(--pri-deep); font-weight: 600; }
 .act .card > .rec-item .rec-foot { margin-bottom: -2px; }
+.rec-kind.demo { background: #eef3ff; color: #5a6aab; }
+.link-btn {
+  display: block; width: 100%; margin-top: 10px; padding: 10px; border-radius: 12px;
+  font-size: 13px; font-weight: 600; color: var(--pri-deep); background: #fff3f5; text-align: center;
+}
 .rec-st.reject { background: #f6f3f3; color: #a05a5a; }
 .rec-link-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .rec-link-row .rec-link { flex: 1; min-width: 0; margin-top: 0; }

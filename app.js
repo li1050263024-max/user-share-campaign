@@ -281,7 +281,8 @@
         '<div><b>' + ok + '</b><span>已通过</span></div>' +
       '</div>' +
       (list.length ? '<div class="rec-list">' + latest + '</div>'
-        : '<p class="rec-empty">还没有提交记录，参与活动后可在这里查看帖子数据</p>') +
+        : '<p class="rec-empty">还没有提交记录，参与活动后可在这里查看帖子数据</p>' +
+          '<button class="link-btn" data-demo>生成测试记录看看效果</button>') +
       '</div>';
   }
 
@@ -301,6 +302,7 @@
   function recordHead(r) {
     var st = recordStatus(r);
     return '<div class="rec-hd"><span class="rec-act">' + r.actTitle + '</span><span class="rec-kind">' + r.kind + '</span>' +
+      (r.demo ? '<span class="rec-kind demo">测试</span>' : '') +
       '<span class="rec-st ' + st.c + '">' + st.t + '</span></div>';
   }
 
@@ -728,6 +730,12 @@
       renderKeepingForm(act);
       return;
     }
+    if (el.hasAttribute('data-demo')) {
+      HB.seedDemo();
+      location.hash = '#/records';
+      toast('已生成 5 条测试记录');
+      return;
+    }
     if (el.hasAttribute('data-claim')) {
       var rid = location.hash.replace('#/record/', '');
       var rec = HB.findRecord(rid);
@@ -812,5 +820,9 @@
   }
   clock(); setInterval(clock, 10000);
 
+  if (/[?&]demo=1/.test(location.search)) {
+    HB.seedDemo();
+    history.replaceState(null, '', location.pathname + '#/records');
+  }
   route();
 })();

@@ -136,6 +136,8 @@
       <h1>话本分享官 · 收集后台</h1>
       <span class="tag">用户提交信息</span>
       <span class="sp"></span>
+      <button class="btn" id="seed">生成测试数据</button>
+      <button class="btn" id="unseed">清除测试数据</button>
       <button class="btn" id="refresh">刷新</button>
       <button class="btn" id="export">导出 CSV</button>
       <a class="btn" href="index.html" target="_blank">打开活动页</a>
@@ -198,7 +200,7 @@
   <div class="viewer" id="viewer"><img alt="" /></div>
   <div class="toast" id="toast"></div>
 
-  <script src="store.js?v=20261012c"></script>
+  <script src="store.js?v=20261012d"></script>
   <script>
   (function () {
     'use strict';
@@ -285,7 +287,8 @@
       ops.push('<button class="btn sm danger" data-op="del" data-id="' + r.id + '">删除</button>');
       return '<tr>' +
         '<td style="white-space:nowrap">' + HB.fmtTime(r.time) + '</td>' +
-        '<td><div class="act-name">' + esc(r.actTitle || HB.ACT_TITLES[r.act]) + '</div><span class="kind">' + esc(r.kind) + '</span></td>' +
+        '<td><div class="act-name">' + esc(r.actTitle || HB.ACT_TITLES[r.act]) + '</div><span class="kind">' + esc(r.kind) + '</span>' +
+          (r.demo ? ' <span class="kind" style="background:#eef3ff;color:#5a6aab">测试</span>' : '') + '</td>' +
         '<td><span class="type ' + r.type + '">' + HB.TYPES[r.type].name + '</span></td>' +
         '<td style="white-space:nowrap">' + esc(r.platform || '-') + '</td>' +
         '<td class="link"><a href="' + esc(r.link) + '" target="_blank" rel="noopener" title="' + esc(r.link) + '">' + esc(r.link) + '</a></td>' +
@@ -316,6 +319,8 @@
     ['fAct', 'fType', 'fKind', 'fStatus'].forEach(function (id) { $(id).addEventListener('change', render); });
     $('fKey').addEventListener('input', render);
     $('refresh').addEventListener('click', function () { render(); toast('已刷新'); });
+    $('seed').addEventListener('click', function () { HB.seedDemo(); render(); toast('已生成 5 条测试数据'); });
+    $('unseed').addEventListener('click', function () { HB.clearDemo(); render(); toast('已清除测试数据'); });
     window.addEventListener('storage', function (e) { if (e.key === HB.KEY) render(); });
 
     // ---------- 操作 ----------
