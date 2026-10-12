@@ -143,14 +143,15 @@
   // ---------------- 状态 ----------------
   var store = {
     get: function (k, d) { try { var v = localStorage.getItem('hb_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
-    set: function (k, v) { try { localStorage.setItem('hb_' + k, JSON.stringify(v)); } catch (e) {} }
+    set: function (k, v) { try { localStorage.setItem('hb_' + k, JSON.stringify(v)); return true; } catch (e) { return false; } }
   };
   var state = {
     type: store.get('type', 'book'),
     platform: '小红书',
     tagIdx: 0,
-    shots: []
+    shots: emptyShots()
   };
+  function emptyShots() { return { comment: [], data: [], upd: [] }; }
 
   function todayKey() {
     var d = new Date();
@@ -159,6 +160,49 @@
   function usedToday(act) { return store.get('used_' + act + '_' + todayKey(), 0); }
   function addUsed(act) { store.set('used_' + act + '_' + todayKey(), usedToday(act) + 1); }
   function shareCode() { return store.get('code', ''); }
+
+  function getRecords() { return store.get('records', []); }
+  function addRecord(rec) {
+    var list = getRecords();
+    rec.id = Date.now();
+    rec.time = Date.now();
+    list.unshift(rec);
+    if (store.set('records', list)) return;
+    rec.shots = [];
+    rec.shotsDropped = true;
+    if (!store.set('records', list)) toast('本地存储空间不足，记录保存失败');
+  }
+  function recordStatus(r) {
+    return Date.now() - r.time > 864e5 ? { t: '审核通过', c: 'ok' } : { t: '审核中', c: 'ing' };
+  }
+  function fmtTime(ts) {
+    var d = new Date(ts);
+    function p(n) { return n < 10 ? '0' + n : n; }
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+  function fmtNum(n) {
+    n = +n || 0;
+    return n >= 10000 ? (n / 10000).toFixed(1).replace(/\.0$/, '') + 'w' : String(n);
+  }
+
+  // 截图压缩后再存，避免撑爆 localStorage
+  function compressImage(file, cb) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        var max = 720, w = img.width, h = img.height;
+        if (w > max) { h = Math.round(h * max / w); w = max; }
+        var cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(img, 0, 0, w, h);
+        cb(cv.toDataURL('image/jpeg', 0.72));
+      };
+      img.onerror = function () { toast('图片读取失败'); };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
 
   // ---------------- 工具 ----------------
   var toastTimer;
@@ -253,8 +297,63 @@
             '</div>' +
           '</div>' +
           '<div class="card"><div class="card-title">选择参与方式<span class="sub">点击进入活动</span></div>' + actBtns + '</div>' +
+          recordEntry() +
         '</div>' +
       '</div>';
+  }
+
+  function recordEntry() {
+    var list = getRecords();
+    var views = 0, ing = 0;
+    list.forEach(function (r) { views += +r.views || 0; if (recordStatus(r).c === 'ing') ing++; });
+    var latest = list.slice(0, 2).map(recordItem).join('');
+    return '<div class="card"><div class="card-title">我的提交记录' +
+      (list.length ? '<button class="sub link" data-go="records">查看全部 ›</button>' : '') + '</div>' +
+      '<div class="rec-stats">' +
+        '<div><b>' + list.length + '</b><span>累计提交</span></div>' +
+        '<div><b>' + ing + '</b><span>审核中</span></div>' +
+        '<div><b>' + fmtNum(views) + '</b><span>累计浏览量</span></div>' +
+      '</div>' +
+      (list.length ? '<div class="rec-list">' + latest + '</div>'
+        : '<p class="rec-empty">还没有提交记录，参与活动后可在这里查看帖子数据</p>') +
+      '</div>';
+  }
+
+  function recordItem(r) {
+    var st = recordStatus(r);
+    var rows = [];
+    rows.push(['宣传内容', TYPES[r.type].name]);
+    if (r.platform) rows.push(['发布平台', r.platform]);
+    if (r.views !== undefined && r.views !== '') rows.push(['浏览量', '<b>' + (+r.views).toLocaleString() + '</b>']);
+    if (r.interact !== undefined) rows.push(['点赞 + 收藏', '<b>' + (+r.interact).toLocaleString() + '</b>']);
+    rows.push(['提交时间', fmtTime(r.time)]);
+    return '<div class="rec-item">' +
+      '<div class="rec-hd"><span class="rec-act">' + r.actTitle + '</span><span class="rec-kind">' + r.kind + '</span>' +
+        '<span class="rec-st ' + st.c + '">' + st.t + '</span></div>' +
+      '<div class="rec-rows">' + rows.map(function (x) {
+        return '<div><span>' + x[0] + '</span><span>' + x[1] + '</span></div>';
+      }).join('') + '</div>' +
+      '<div class="rec-link" title="' + esc(r.link) + '">' + esc(r.link) + '</div>' +
+      (r.shots && r.shots.length ? '<div class="rec-shots">' + r.shots.map(function (s) {
+        return '<img src="' + s + '" alt="" data-view>';
+      }).join('') + '</div>' : (r.shotsDropped ? '<p class="field-hint">截图因存储空间不足未保存</p>' : '')) +
+      '</div>';
+  }
+
+  function renderRecords() {
+    var list = getRecords();
+    var f = state.recFilter || 'all';
+    var tabs = [['all', '全部'], ['act1', '官方素材'], ['act2', '原创内容'], ['act3', '评论区']];
+    var shown = list.filter(function (r) { return f === 'all' || r.act === f; });
+    app.innerHTML = '<div class="page act ' + state.type + '"><div class="topbar"><div class="row">' +
+      '<button class="back" data-back>‹</button><div class="ttl">提交记录</div><span class="spacer"></span></div>' +
+      '<div class="rec-tabs">' + tabs.map(function (t) {
+        return '<button data-rec-filter="' + t[0] + '" class="' + (f === t[0] ? 'on' : '') + '">' + t[1] + '</button>';
+      }).join('') + '</div></div>' +
+      '<div class="act-body">' +
+      (shown.length ? shown.map(function (r) { return '<div class="card">' + recordItem(r) + '</div>'; }).join('')
+        : '<div class="card"><p class="rec-empty">暂无记录</p></div>') +
+      '</div></div>';
   }
 
   // ---------------- 活动页组件 ----------------
@@ -326,13 +425,10 @@
       return '<button type="button" data-plat="' + p + '" class="' + (state.platform === p ? 'on' : '') + '">' + p + '</button>';
     }).join('');
     var shots = '';
-    if (opts.shots) {
-      shots = '<div class="field"><label>评论截图<em>*</em></label><div class="upload">' +
-        state.shots.map(function (src, i) {
-          return '<div class="thumb-img"><img src="' + src + '" alt=""><button type="button" data-del-shot="' + i + '">×</button></div>';
-        }).join('') +
-        (state.shots.length < 3 ? '<label class="add"><b>+</b>上传截图<input type="file" accept="image/*" hidden id="shotInput"></label>' : '') +
-        '</div></div>';
+    if (opts.shots) shots += uploadField('comment', '评论截图');
+    if (opts.data) {
+      shots += uploadField('data', '帖子后台数据截图', '请上传帖子后台数据页截图，需清晰展示浏览量') +
+        '<div class="field"><label>浏览量<em>*</em></label><input id="fViews" type="number" min="0" inputmode="numeric" placeholder="与截图中的浏览量一致" /></div>';
     }
     return '<div class="quota"><span>奖励模式：' + TYPES[state.type].name + '</span>' +
       '<span>今日剩余 <b>' + left + '</b> / ' + act.limit + ' 次</span></div>' +
@@ -347,6 +443,18 @@
       (opts.update ? updateBody() : '');
   }
 
+  function uploadField(bucket, label, hint) {
+    var list = state.shots[bucket];
+    return '<div class="field"><label>' + label + '<em>*</em></label>' +
+      (hint ? '<p class="field-hint">' + hint + '</p>' : '') +
+      '<div class="upload">' +
+      list.map(function (src, i) {
+        return '<div class="thumb-img"><img src="' + src + '" alt="" data-view><button type="button" data-del="' + bucket + ':' + i + '">×</button></div>';
+      }).join('') +
+      (list.length < 3 ? '<label class="add"><b>+</b>上传截图<input type="file" accept="image/*" hidden data-bucket="' + bucket + '"></label>' : '') +
+      '</div></div>';
+  }
+
   function updateBody() {
     var open = state.updOpen;
     return '<div class="upd">' +
@@ -358,6 +466,8 @@
           '<p class="step-desc">平台核实最新点赞 + 收藏数据后，按达到的最高档位补发奖励，不占用每日参与次数。</p>' +
           '<div class="field"><label>原帖链接<em>*</em></label><input id="uLink" type="url" placeholder="粘贴已提交过的帖子链接" /></div>' +
           '<div class="field"><label>当前累计点赞 + 收藏<em>*</em></label><input id="uNum" type="number" min="0" inputmode="numeric" placeholder="例如 1200" /></div>' +
+          uploadField('upd', '帖子后台数据截图', '请上传最新的帖子后台数据页截图，需清晰展示浏览量') +
+          '<div class="field"><label>当前浏览量<em>*</em></label><input id="uViews" type="number" min="0" inputmode="numeric" placeholder="与截图中的浏览量一致" /></div>' +
           '<button class="btn block ghost" type="submit">提交数据更新申请</button>' +
         '</form>' : '') +
       '</div>';
@@ -377,7 +487,7 @@
       step(2, '下载活动配图', '点击下载', '<div class="posters">' + posters + '</div>') +
       step(3, '领取专属分享码', '', codeBody()) +
       step(4, '发布到社交平台', '', publishBody('将官方文案、配图和分享码一起发布到小红书、抖音、快手等社交媒体平台。')) +
-      step(5, '上传帖子链接及分享码', '', submitBody('act1', { update: true })) +
+      step(5, '上传帖子链接及数据', '', submitBody('act1', { update: true, data: true })) +
       step(6, '审核通过领取奖励', '热度提升追加奖励', rewardBody(true));
   }
 
@@ -397,7 +507,7 @@
     return intro +
       step(1, '领取专属分享码', '', codeBody()) +
       step(2, '发布原创内容', '', publishBody('围绕上方推荐方向自主创作，带上分享码发布到小红书、抖音、快手等平台。')) +
-      step(3, '上传帖子链接及分享码', '', submitBody('act2', { update: true })) +
+      step(3, '上传帖子链接及数据', '', submitBody('act2', { update: true, data: true })) +
       step(4, '审核通过获得奖励', '热度提升追加奖励', rewardBody(true));
   }
 
@@ -499,23 +609,39 @@
   }
   function route() {
     var key = location.hash.replace('#/', '').replace('#', '');
-    state.shots = [];
+    state.shots = emptyShots();
     state.tagIdx = 0;
     state.updOpen = false;
     if (ACTS[key]) renderAct(key);
     else if (key === 'rules') renderRules();
+    else if (key === 'records') { state.recFilter = 'all'; renderRecords(); }
     else renderHome();
     screen.scrollTop = 0;
   }
 
   // ---------------- 事件 ----------------
   function renderKeepingForm(act) {
-    var link = document.getElementById('fLink'), code = document.getElementById('fCode');
-    var lv = link ? link.value : '', cv = code ? code.value : '';
+    var vals = {};
+    app.querySelectorAll('input[id]:not([type=file])').forEach(function (i) { vals[i.id] = i.value; });
     renderAct(act, true);
-    if (document.getElementById('fLink')) document.getElementById('fLink').value = lv;
-    if (document.getElementById('fCode')) document.getElementById('fCode').value = cv;
+    Object.keys(vals).forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.value = vals[id];
+    });
   }
+
+  function validLink(s) {
+    return /^https?:\/\/\S+/i.test(s) || /(xhslink|xiaohongshu|douyin|kuaishou)/i.test(s);
+  }
+
+  var viewer = document.getElementById('viewer');
+  viewer.addEventListener('click', function () { viewer.classList.remove('show'); });
+  app.addEventListener('click', function (e) {
+    var img = e.target.closest('img[data-view]');
+    if (!img) return;
+    viewer.querySelector('img').src = img.src;
+    viewer.classList.add('show');
+  });
 
   app.addEventListener('click', function (e) {
     var el = e.target.closest('button, [data-go]');
@@ -582,18 +708,26 @@
       renderKeepingForm(act);
       return;
     }
-    if (el.hasAttribute('data-del-shot')) {
-      state.shots.splice(+el.getAttribute('data-del-shot'), 1);
+    if (el.hasAttribute('data-del')) {
+      var parts = el.getAttribute('data-del').split(':');
+      state.shots[parts[0]].splice(+parts[1], 1);
       renderKeepingForm(act);
+      return;
+    }
+    if (el.hasAttribute('data-rec-filter')) {
+      state.recFilter = el.getAttribute('data-rec-filter');
+      renderRecords();
       return;
     }
   });
 
   app.addEventListener('change', function (e) {
-    if (e.target.id !== 'shotInput' || !e.target.files[0]) return;
-    var reader = new FileReader();
-    reader.onload = function () { state.shots.push(reader.result); renderKeepingForm(currentAct()); };
-    reader.readAsDataURL(e.target.files[0]);
+    var bucket = e.target.getAttribute('data-bucket');
+    if (!bucket || !e.target.files[0]) return;
+    compressImage(e.target.files[0], function (src) {
+      state.shots[bucket].push(src);
+      renderKeepingForm(currentAct());
+    });
   });
 
   app.addEventListener('submit', function (e) {
@@ -602,22 +736,39 @@
     if (e.target.id === 'updForm') {
       var uLink = document.getElementById('uLink').value.trim();
       var uNum = document.getElementById('uNum').value.trim();
-      if (!/^https?:\/\/\S+/i.test(uLink) && !/(xhslink|xiaohongshu|douyin|kuaishou)/i.test(uLink)) return toast('请填写有效的原帖链接');
+      var uViews = document.getElementById('uViews').value.trim();
+      if (!validLink(uLink)) return toast('请填写有效的原帖链接');
       if (!/^\d+$/.test(uNum)) return toast('请填写当前累计点赞 + 收藏数');
+      if (!state.shots.upd.length) return toast('请上传帖子后台数据截图');
+      if (!/^\d+$/.test(uViews)) return toast('请填写当前浏览量');
+      addRecord({
+        act: act, actTitle: ACTS[act].title, kind: '数据更新', type: state.type,
+        link: uLink, views: uViews, interact: uNum, shots: state.shots.upd.slice()
+      });
       state.updOpen = false;
+      state.shots.upd = [];
       renderKeepingForm(act);
       toast('数据更新申请已提交，核实后将按最高档位补发奖励');
       return;
     }
     var link = document.getElementById('fLink').value.trim();
     var code = document.getElementById('fCode').value.trim().toUpperCase();
+    var viewsEl = document.getElementById('fViews');
+    var views = viewsEl ? viewsEl.value.trim() : undefined;
     if (usedToday(act) >= ACTS[act].limit) return toast('今日参与次数已用完');
-    if (!/^https?:\/\/\S+/i.test(link) && !/(xhslink|xiaohongshu|douyin|kuaishou)/i.test(link)) return toast('请填写有效的帖子链接');
-    if (act === 'act3' && !state.shots.length) return toast('请上传评论截图');
+    if (!validLink(link)) return toast('请填写有效的帖子链接');
+    if (act === 'act3' && !state.shots.comment.length) return toast('请上传评论截图');
+    if (viewsEl && !state.shots.data.length) return toast('请上传帖子后台数据截图');
+    if (viewsEl && !/^\d+$/.test(views)) return toast('请填写帖子浏览量');
     if (!shareCode()) return toast('请先领取专属分享码');
     if (code !== shareCode()) return toast('分享码与当前账号不匹配');
     addUsed(act);
-    state.shots = [];
+    addRecord({
+      act: act, actTitle: ACTS[act].title, kind: act === 'act3' ? '评论分享' : '首次提交', type: state.type,
+      platform: state.platform, link: link, views: views,
+      shots: (act === 'act3' ? state.shots.comment : state.shots.data).slice()
+    });
+    state.shots = emptyShots();
     renderAct(act, true);
     toast('提交成功！已选择「' + TYPES[state.type].name + '」奖励模式，预计 1 个工作日内完成审核');
   });
