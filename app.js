@@ -256,10 +256,10 @@
                 return '<div class="tr' + (t.top ? ' top' : '') + '"><span>' + t.lv + '</span><span>' + t.rw + '</span><span>' + ag.rw + '</span></div>';
               }).join('') +
             '</div>' +
-            rewardNotes('奖励规则', 'in-card') +
           '</div>' +
           '<div class="card"><div class="card-title">选择参与方式<span class="sub">点击进入活动</span></div>' + actBtns + '</div>' +
           recordEntry() +
+          rewardNotes('奖励规则') +
         '</div>' +
       '</div>';
   }
