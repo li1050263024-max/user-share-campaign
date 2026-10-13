@@ -231,7 +231,6 @@
       '<div class="page home">' +
         '<div class="hero">' +
           '<button class="rules-entry" data-go="rules">活动规则 ›</button>' +
-          '<span class="brand">话本 · 用户宣传活动</span>' +
           '<h1>话本分享官<br>征集活动</h1>' +
           '<p>分享你在话本小说中的精彩阅读体验，或记录与你喜欢的智能体互动的日常，即可成为「话本分享官」。</p>' +
           '<div class="cash">优质内容最高领 <b>100</b> 元现金</div>' +
@@ -257,6 +256,7 @@
                 return '<div class="tr' + (t.top ? ' top' : '') + '"><span>' + t.lv + '</span><span>' + t.rw + '</span><span>' + ag.rw + '</span></div>';
               }).join('') +
             '</div>' +
+            rewardNotes('奖励规则', 'in-card') +
           '</div>' +
           '<div class="card"><div class="card-title">选择参与方式<span class="sub">点击进入活动</span></div>' + actBtns + '</div>' +
           recordEntry() +
@@ -290,7 +290,9 @@
     rows.push(['宣传内容', TYPES[r.type].name]);
     if (r.platform) rows.push(['发布平台', r.platform]);
     if (r.views !== undefined && r.views !== '') rows.push(['浏览量', '<b>' + (+r.views).toLocaleString() + '</b>']);
-    if (r.interact !== undefined) rows.push(['点赞 + 收藏', '<b>' + (+r.interact).toLocaleString() + '</b>']);
+    if (r.likes !== undefined && r.likes !== '') rows.push(['点赞', '<b>' + (+r.likes).toLocaleString() + '</b>']);
+    if (r.favs !== undefined && r.favs !== '') rows.push(['收藏', '<b>' + (+r.favs).toLocaleString() + '</b>']);
+    if (r.interact !== undefined && r.interact !== '' && (full || r.likes === undefined)) rows.push(['点赞 + 收藏', '<b>' + (+r.interact).toLocaleString() + '</b>']);
     if (full && r.code) rows.push(['分享码', r.code]);
     rows.push(['提交时间', fmtTime(r.time)]);
     return '<div class="rec-rows">' + rows.map(function (x) {
@@ -420,8 +422,26 @@
     return html;
   }
 
-  function rewardNotes() {
-    return '<div class="foot-notes"><div class="hd">奖励说明</div><ol>' +
+  function statsFields(p) {
+    return '<div class="field"><label>帖子数据<em>*</em></label><div class="stat-inputs">' +
+      [['Views', '浏览量'], ['Likes', '点赞'], ['Favs', '收藏']].map(function (x) {
+        return '<div><span>' + x[1] + '</span><input id="' + p + x[0] + '" type="number" min="0" inputmode="numeric" placeholder="0" /></div>';
+      }).join('') +
+      '</div><p class="field-hint" style="margin:6px 0 0">请与后台截图中的数据保持一致</p></div>';
+  }
+
+  function readStats(p) {
+    var v = {};
+    var ok = ['Views', 'Likes', 'Favs'].every(function (k) {
+      var el = document.getElementById(p + k);
+      v[k] = el ? el.value.trim() : '';
+      return /^\d+$/.test(v[k]);
+    });
+    return ok ? { views: v.Views, likes: v.Likes, favs: v.Favs, interact: String(+v.Likes + +v.Favs) } : null;
+  }
+
+  function rewardNotes(title, cls) {
+    return '<div class="foot-notes ' + (cls || '') + '"><div class="hd">' + (title || '奖励说明') + '</div><ol>' +
       '<li>每种奖励每日最多参与 1 次，每日首次有效分享可领基础奖励。</li>' +
       '<li>同一条分享内容仅可选择一种奖励模式，不可同时领取小说奖励和智能体奖励。</li>' +
       '<li>单篇帖子首次提交审核通过后，可领取基础奖励；后续每达到一个热度档位，即可领取该档位对应的奖励。</li>' +
@@ -442,8 +462,8 @@
     var shots = '';
     if (opts.shots) shots += uploadField('comment', '评论截图');
     if (opts.data) {
-      shots += uploadField('data', '帖子后台数据截图', '请上传帖子后台数据页截图，需清晰展示浏览量') +
-        '<div class="field"><label>浏览量<em>*</em></label><input id="fViews" type="number" min="0" inputmode="numeric" placeholder="与截图中的浏览量一致" /></div>';
+      shots += uploadField('data', '帖子后台数据截图', '请上传帖子后台数据页截图，需清晰展示浏览量、点赞、收藏') +
+        statsFields('f');
     }
     return '<div class="quota"><span>奖励模式：' + TYPES[state.type].name + '</span>' +
       '<span>今日剩余 <b>' + left + '</b> / ' + act.limit + ' 次</span></div>' +
@@ -480,9 +500,8 @@
         '<form id="updForm" class="upd-form" novalidate>' +
           '<p class="step-desc">平台核实最新点赞 + 收藏数据后，每个新达到的档位均可领取对应奖励，不占用每日参与次数。</p>' +
           '<div class="field"><label>原帖链接<em>*</em></label><input id="uLink" type="url" placeholder="粘贴已提交过的帖子链接" /></div>' +
-          '<div class="field"><label>当前累计点赞 + 收藏<em>*</em></label><input id="uNum" type="number" min="0" inputmode="numeric" placeholder="例如 1200" /></div>' +
-          uploadField('upd', '帖子后台数据截图', '请上传最新的帖子后台数据页截图，需清晰展示浏览量') +
-          '<div class="field"><label>当前浏览量<em>*</em></label><input id="uViews" type="number" min="0" inputmode="numeric" placeholder="与截图中的浏览量一致" /></div>' +
+          uploadField('upd', '帖子后台数据截图', '请上传最新的帖子后台数据页截图，需清晰展示浏览量、点赞、收藏') +
+          statsFields('u') +
           '<button class="btn block ghost" type="submit">提交数据更新申请</button>' +
         '</form>' : '') +
       '</div>';
@@ -784,15 +803,14 @@
     var act = currentAct();
     if (e.target.id === 'updForm') {
       var uLink = document.getElementById('uLink').value.trim();
-      var uNum = document.getElementById('uNum').value.trim();
-      var uViews = document.getElementById('uViews').value.trim();
       if (!validLink(uLink)) return toast('请填写有效的原帖链接');
-      if (!/^\d+$/.test(uNum)) return toast('请填写当前累计点赞 + 收藏数');
       if (!state.shots.upd.length) return toast('请上传帖子后台数据截图');
-      if (!/^\d+$/.test(uViews)) return toast('请填写当前浏览量');
+      var us = readStats('u');
+      if (!us) return toast('请完整填写浏览量、点赞、收藏');
       addRecord({
         act: act, actTitle: ACTS[act].title, kind: '数据更新', type: state.type,
-        link: uLink, views: uViews, interact: uNum, shots: state.shots.upd.slice()
+        link: uLink, views: us.views, likes: us.likes, favs: us.favs, interact: us.interact,
+        shots: state.shots.upd.slice()
       });
       state.updOpen = false;
       state.shots.upd = [];
@@ -802,19 +820,19 @@
     }
     var link = document.getElementById('fLink').value.trim();
     var code = document.getElementById('fCode').value.trim().toUpperCase();
-    var viewsEl = document.getElementById('fViews');
-    var views = viewsEl ? viewsEl.value.trim() : undefined;
+    var hasData = !!document.getElementById('fViews');
+    var fs = hasData ? readStats('f') : {};
     if (usedToday(act) >= ACTS[act].limit) return toast('今日参与次数已用完');
     if (!validLink(link)) return toast('请填写有效的帖子链接');
     if (act === 'act3' && !state.shots.comment.length) return toast('请上传评论截图');
-    if (viewsEl && !state.shots.data.length) return toast('请上传帖子后台数据截图');
-    if (viewsEl && !/^\d+$/.test(views)) return toast('请填写帖子浏览量');
+    if (hasData && !state.shots.data.length) return toast('请上传帖子后台数据截图');
+    if (hasData && !fs) return toast('请完整填写浏览量、点赞、收藏');
     if (!shareCode()) return toast('请先领取专属分享码');
     if (code !== shareCode()) return toast('分享码与当前账号不匹配');
     addUsed(act);
     addRecord({
       act: act, actTitle: ACTS[act].title, kind: act === 'act3' ? '评论分享' : '首次提交', type: state.type,
-      platform: state.platform, link: link, views: views,
+      platform: state.platform, link: link, views: fs.views, likes: fs.likes, favs: fs.favs, interact: fs.interact,
       shots: (act === 'act3' ? state.shots.comment : state.shots.data).slice()
     });
     state.shots = emptyShots();

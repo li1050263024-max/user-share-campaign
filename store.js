@@ -72,7 +72,7 @@
 
   function statusOf(r) { return STATUS[r.status] || STATUS.ing; }
 
-  // 一条记录可领取的奖励：首次提交得基础奖励，填写了点赞+收藏的按达到的热度档位计算
+  // 一条记录可领取的奖励：首次提交得基础奖励，另按点赞+收藏达到的每个档位各得一份
   function rewardsOf(r) {
     var R = REWARD[r.type] || REWARD.book;
     var out = [];
@@ -141,13 +141,13 @@
   function seedDemo() {
     var now = Date.now(), H = 3600e3;
     var demo = [
-      { act: 'act1', kind: '首次提交', type: 'book', platform: '小红书', link: 'https://www.xiaohongshu.com/explore/6712ab01c3d4', views: '3260', status: 'ing', ago: 0.5 * H,
+      { act: 'act1', kind: '首次提交', type: 'book', platform: '小红书', link: 'https://www.xiaohongshu.com/explore/6712ab01c3d4', views: '3260', likes: '168', favs: '74', status: 'ing', ago: 0.5 * H,
         shot: { title: '笔记数据', views: 3260, likes: 168, favs: 74, cmts: 23 } },
-      { act: 'act2', kind: '首次提交', type: 'agent', platform: '抖音', link: 'https://v.douyin.com/iRk8Hc2A', views: '18450', status: 'ok', ago: 26 * H, claimed: [],
+      { act: 'act2', kind: '首次提交', type: 'agent', platform: '抖音', link: 'https://v.douyin.com/iRk8Hc2A', views: '18450', likes: '912', favs: '305', status: 'ok', ago: 26 * H, claimed: ['base', 't50'],
         shot: { title: '作品数据', views: 18450, likes: 912, favs: 305, cmts: 88 } },
-      { act: 'act2', kind: '数据更新', type: 'agent', platform: '', link: 'https://v.douyin.com/iRk8Hc2A', views: '52800', interact: '2360', status: 'ok', ago: 3 * H, claimed: ['t50', 't100'],
+      { act: 'act2', kind: '数据更新', type: 'agent', platform: '', link: 'https://v.douyin.com/iRk8Hc2A', views: '52800', likes: '1720', favs: '640', status: 'ok', ago: 3 * H, claimed: ['t50', 't100'],
         shot: { title: '作品数据', views: 52800, likes: 1720, favs: 640, cmts: 205 } },
-      { act: 'act1', kind: '首次提交', type: 'book', platform: '快手', link: 'https://v.kuaishou.com/2hQx9P', views: '980', status: 'reject', rejectReason: '后台截图未展示浏览量，请重新提交', ago: 50 * H,
+      { act: 'act1', kind: '首次提交', type: 'book', platform: '快手', link: 'https://v.kuaishou.com/2hQx9P', views: '980', likes: '42', favs: '11', status: 'reject', rejectReason: '后台截图未展示浏览量，请重新提交', ago: 50 * H,
         shot: { title: '作品数据', views: 980, likes: 42, favs: 11, cmts: 6 } },
       { act: 'act3', kind: '评论分享', type: 'book', platform: '小红书', link: 'https://www.xiaohongshu.com/explore/66f0c2a9e1b7', status: 'ok', ago: 5 * H, claimed: ['base'],
         shot: { title: '笔记详情', comment: true, clock: '15:42' } }
@@ -156,7 +156,8 @@
     demo.forEach(function (d, i) {
       list.push({
         id: now - i, demo: true, time: now - d.ago, act: d.act, actTitle: ACT_TITLES[d.act], kind: d.kind, type: d.type,
-        platform: d.platform, link: d.link, views: d.views, interact: d.interact, code: 'HBTEST01',
+        platform: d.platform, link: d.link, views: d.views, likes: d.likes, favs: d.favs,
+        interact: d.likes !== undefined ? String(+d.likes + +d.favs) : undefined, code: 'HBTEST01',
         status: d.status, rejectReason: d.rejectReason || '', claimed: d.claimed || [],
         shots: [drawShot(d.shot)]
       });

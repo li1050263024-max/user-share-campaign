@@ -478,6 +478,11 @@ input, select, textarea { font: inherit; }
 .rule-sec:last-child { margin-bottom: 0; }
 .rule-sec h3 { font-size: 14px; margin-bottom: 6px; color: #5b4448; }
 
+.stat-inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.stat-inputs div { display: flex; flex-direction: column; gap: 4px; }
+.stat-inputs span { font-size: 12px; color: var(--muted); }
+.stat-inputs input { text-align: center; padding: 10px 6px !important; }
+.foot-notes.in-card { padding: 14px 0 0; margin-top: 14px; border-top: 1px dashed #f1ecec; }
 .field-hint { font-size: 12px; color: var(--muted); line-height: 1.6; margin: -2px 0 8px; }
 
 /* 提交记录 */

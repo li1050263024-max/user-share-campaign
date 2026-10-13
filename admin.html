@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
@@ -186,7 +186,7 @@
           <thead>
             <tr>
               <th>提交时间</th><th>活动 / 类型</th><th>宣传内容</th><th>平台</th><th>帖子链接</th>
-              <th>分享码</th><th style="text-align:right">浏览量</th><th style="text-align:right">点赞+收藏</th>
+              <th>分享码</th><th style="text-align:right">浏览量</th><th style="text-align:right">点赞</th><th style="text-align:right">收藏</th><th style="text-align:right">点赞+收藏</th>
               <th>截图</th><th>审核状态</th><th>奖励领取</th><th>操作</th>
             </tr>
           </thead>
@@ -200,7 +200,7 @@
   <div class="viewer" id="viewer"><img alt="" /></div>
   <div class="toast" id="toast"></div>
 
-  <script src="store.js?v=20261012d"></script>
+  <script src="store.js?v=20261013c"></script>
   <script>
   (function () {
     'use strict';
@@ -294,6 +294,8 @@
         '<td class="link"><a href="' + esc(r.link) + '" target="_blank" rel="noopener" title="' + esc(r.link) + '">' + esc(r.link) + '</a></td>' +
         '<td class="code">' + esc(r.code || '-') + '</td>' +
         '<td class="num">' + num(r.views) + '</td>' +
+        '<td class="num">' + num(r.likes) + '</td>' +
+        '<td class="num">' + num(r.favs) + '</td>' +
         '<td class="num">' + num(r.interact) + '</td>' +
         '<td>' + shots + '</td>' +
         '<td><span class="st ' + st.c + '">' + st.t + '</span>' +
@@ -361,12 +363,12 @@
     $('export').addEventListener('click', function () {
       var list = filtered();
       if (!list.length) return toast('没有可导出的数据');
-      var head = ['提交时间', '活动', '提交类型', '宣传内容', '平台', '帖子链接', '分享码', '浏览量', '点赞+收藏', '截图数', '审核状态', '驳回原因', '可领奖励', '已领奖励'];
+      var head = ['提交时间', '活动', '提交类型', '宣传内容', '平台', '帖子链接', '分享码', '浏览量', '点赞', '收藏', '点赞+收藏', '截图数', '审核状态', '驳回原因', '可领奖励', '已领奖励'];
       var lines = list.map(function (r) {
         var rewards = HB.rewardsOf(r), claimed = r.claimed || [];
         return [
           HB.fmtTime(r.time), r.actTitle || HB.ACT_TITLES[r.act], r.kind, HB.TYPES[r.type].name, r.platform || '',
-          r.link, r.code || '', r.views || '', r.interact || '', (r.shots || []).length,
+          r.link, r.code || '', r.views || '', r.likes || '', r.favs || '', r.interact || '', (r.shots || []).length,
           HB.statusOf(r).t, r.rejectReason || '',
           rewards.map(function (w) { return w.name; }).join('；'),
           rewards.filter(function (w) { return claimed.indexOf(w.key) >= 0; }).map(function (w) { return w.name; }).join('；')
