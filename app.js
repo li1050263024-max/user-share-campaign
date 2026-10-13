@@ -272,15 +272,14 @@
       if (c === 'ing') ing++;
       if (c === 'ok') ok++;
     });
-    var latest = list.slice(0, 2).map(recordItem).join('');
     return '<div class="card"><div class="card-title">我的提交记录' +
       (list.length ? '<button class="sub link" data-go="records">查看全部 ›</button>' : '') + '</div>' +
-      '<div class="rec-stats">' +
+      '<div class="rec-stats"' + (list.length ? ' data-go="records" style="cursor:pointer"' : '') + '>' +
         '<div><b>' + list.length + '</b><span>累计提交</span></div>' +
         '<div><b>' + ing + '</b><span>审核中</span></div>' +
         '<div><b>' + ok + '</b><span>已通过</span></div>' +
       '</div>' +
-      (list.length ? '<div class="rec-list">' + latest + '</div>'
+      (list.length ? ''
         : '<p class="rec-empty">还没有提交记录，参与活动后可在这里查看帖子数据</p>' +
           '<button class="link-btn" data-demo>生成测试记录看看效果</button>') +
       '</div>';
