@@ -542,15 +542,19 @@
     var a = ACTS.act1, t = state.type;
     var copies = '<div class="copy-item"><div class="txt clamp3">' + esc(a.copies[t][0]) + '</div>' +
       '<div class="ops"><button class="btn ghost" data-copy="0">复制文案</button></div></div>';
-    var posters = a.posters[t].map(function (p, i) {
-      return '<div class="poster"><canvas width="360" height="480" data-poster="' + i + '"></canvas>' +
-        '<button class="dl" data-dl="' + i + '">下载</button></div>';
-    }).join('');
+    var own = t === 'agent' ? '和智能体的聊天对话' : '喜欢的小说片段';
+    var posters = '<div class="poster-one">' +
+      '<div class="poster"><canvas width="360" height="480" data-poster="0"></canvas></div>' +
+      '<div class="poster-side">' +
+        '<button class="btn block ghost" data-dl="0">下载配图</button>' +
+        '<div class="own-shot"><b>更推荐自己截图</b>' +
+          '截一张你' + own + '，和官方配图一起发布，真实的内容更容易获得点赞和收藏。</div>' +
+      '</div></div>';
     return introBanner(a) +
       step(1, '领取素材 · 复制文案', '点击复制', copies) +
-      step(2, '下载活动配图', '点击下载', '<div class="posters">' + posters + '</div>') +
+      step(2, '下载活动配图', '', posters) +
       step(3, '领取专属分享码', '', codeBody()) +
-      step(4, '发布到社交平台', '', publishBody('将官方文案和配图发布到小红书、抖音、快手等社交媒体平台，并在<b>帖子末尾</b>添加专属分享码。')) +
+      step(4, '发布到社交平台', '', publishBody('将官方文案、配图和你自己的截图一起发布到小红书、抖音、快手等社交媒体平台，并在<b>帖子末尾</b>添加专属分享码。')) +
       step(5, '上传帖子链接及分享码', '', submitBody('act1', { updEntry: true })) +
       step(6, '审核通过领取奖励', '热度提升追加奖励', rewardBody(true));
   }
