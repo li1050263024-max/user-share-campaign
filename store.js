@@ -72,18 +72,36 @@
 
   function statusOf(r) { return STATUS[r.status] || STATUS.ing; }
 
-  // 一条记录可领取的奖励：首次提交得基础奖励，另按点赞+收藏达到的每个档位各得一份
+  function updatesOf(r) {
+    return getRecords().filter(function (u) { return String(u.parent) === String(r.id); });
+  }
+
+  // 原帖已审核通过的最高点赞+收藏（数据更新记录审核通过后计入原帖）
+  function bestInteract(r) {
+    var best = r.interact !== undefined && r.interact !== '' ? +r.interact : -1;
+    updatesOf(r).forEach(function (u) {
+      if (u.status === 'ok' && u.interact !== undefined && u.interact !== '') best = Math.max(best, +u.interact);
+    });
+    return best;
+  }
+
+  function canUpdate(r) { return (r.act === 'act1' || r.act === 'act2') && r.kind === '首次提交' && r.status !== 'reject'; }
+
+  // 原帖的全部档位，reached 表示作品数据已达到
+  function tiersOf(r) {
+    var R = REWARD[r.type] || REWARD.book, n = bestInteract(r);
+    return R.tiers.map(function (t) {
+      var lv = parseInt(t.lv, 10);
+      return { key: 't' + lv, name: t.rw, desc: t.lv + ' 互动档位', reached: n >= lv };
+    });
+  }
+
+  // 一条记录可领取的奖励：基础奖励 + 已达到的每一个档位各一份，档位奖励统一挂在原帖上领取
   function rewardsOf(r) {
+    if (r.kind === '数据更新') return [];
     var R = REWARD[r.type] || REWARD.book;
-    var out = [];
-    if (r.kind !== '数据更新') out.push({ key: 'base', name: R.base, desc: '基础奖励' });
-    if (r.interact !== undefined && r.interact !== '') {
-      var n = +r.interact;
-      R.tiers.forEach(function (t) {
-        var lv = parseInt(t.lv, 10);
-        if (n >= lv) out.push({ key: 't' + lv, name: t.rw, desc: t.lv + ' 互动档位' });
-      });
-    }
+    var out = [{ key: 'base', name: R.base, desc: '基础奖励' }];
+    if (r.act !== 'act3') tiersOf(r).forEach(function (t) { if (t.reached) out.push(t); });
     return out;
   }
 
@@ -141,14 +159,11 @@
   function seedDemo() {
     var now = Date.now(), H = 3600e3;
     var demo = [
-      { act: 'act1', kind: '首次提交', type: 'book', platform: '小红书', link: 'https://www.xiaohongshu.com/explore/6712ab01c3d4', views: '3260', likes: '168', favs: '74', status: 'ing', ago: 0.5 * H,
-        shot: { title: '笔记数据', views: 3260, likes: 168, favs: 74, cmts: 23 } },
-      { act: 'act2', kind: '首次提交', type: 'agent', platform: '抖音', link: 'https://v.douyin.com/iRk8Hc2A', views: '18450', likes: '912', favs: '305', status: 'ok', ago: 26 * H, claimed: ['base', 't50'],
-        shot: { title: '作品数据', views: 18450, likes: 912, favs: 305, cmts: 88 } },
-      { act: 'act2', kind: '数据更新', type: 'agent', platform: '', link: 'https://v.douyin.com/iRk8Hc2A', views: '52800', likes: '1720', favs: '640', status: 'ok', ago: 3 * H, claimed: ['t50', 't100'],
+      { act: 'act1', kind: '首次提交', type: 'book', platform: '小红书', link: 'https://www.xiaohongshu.com/explore/6712ab01c3d4', status: 'ing', ago: 0.5 * H },
+      { act: 'act2', kind: '首次提交', type: 'agent', platform: '抖音', link: 'https://v.douyin.com/iRk8Hc2A', status: 'ok', ago: 26 * H, claimed: ['base', 't50'] },
+      { act: 'act2', kind: '数据更新', type: 'agent', platform: '抖音', link: 'https://v.douyin.com/iRk8Hc2A', parentIdx: 1, views: '52800', likes: '1720', favs: '640', status: 'ok', ago: 3 * H,
         shot: { title: '作品数据', views: 52800, likes: 1720, favs: 640, cmts: 205 } },
-      { act: 'act1', kind: '首次提交', type: 'book', platform: '快手', link: 'https://v.kuaishou.com/2hQx9P', views: '980', likes: '42', favs: '11', status: 'reject', rejectReason: '后台截图未展示浏览量，请重新提交', ago: 50 * H,
-        shot: { title: '作品数据', views: 980, likes: 42, favs: 11, cmts: 6 } },
+      { act: 'act1', kind: '首次提交', type: 'book', platform: '快手', link: 'https://v.kuaishou.com/2hQx9P', status: 'reject', rejectReason: '帖子末尾未添加分享码，请修改后重新提交', ago: 50 * H },
       { act: 'act3', kind: '评论分享', type: 'book', platform: '小红书', link: 'https://www.xiaohongshu.com/explore/66f0c2a9e1b7', status: 'ok', ago: 5 * H, claimed: ['base'],
         shot: { title: '笔记详情', comment: true, clock: '15:42' } }
     ];
@@ -158,8 +173,9 @@
         id: now - i, demo: true, time: now - d.ago, act: d.act, actTitle: ACT_TITLES[d.act], kind: d.kind, type: d.type,
         platform: d.platform, link: d.link, views: d.views, likes: d.likes, favs: d.favs,
         interact: d.likes !== undefined ? String(+d.likes + +d.favs) : undefined, code: 'HBTEST01',
+        parent: d.parentIdx !== undefined ? now - d.parentIdx : undefined,
         status: d.status, rejectReason: d.rejectReason || '', claimed: d.claimed || [],
-        shots: [drawShot(d.shot)]
+        shots: d.shot ? [drawShot(d.shot)] : []
       });
     });
     list.sort(function (a, b) { return b.time - a.time; });
@@ -184,6 +200,9 @@
     updateRecord: updateRecord,
     statusOf: statusOf,
     rewardsOf: rewardsOf,
+    tiersOf: tiersOf,
+    updatesOf: updatesOf,
+    canUpdate: canUpdate,
     fmtTime: fmtTime,
     checkAdminPass: function (p) { return String(p || '') === ADMIN_PASS; }
   };

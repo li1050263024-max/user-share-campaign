@@ -180,15 +180,16 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
-  function copyText(text) {
+  function copyText(text, msg) {
+    msg = msg || '已复制';
     if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(text).then(function () { toast('已复制'); }, fallback);
+      navigator.clipboard.writeText(text).then(function () { toast(msg); }, fallback);
     } else { fallback(); }
     function fallback() {
       var ta = document.createElement('textarea');
       ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
       document.body.appendChild(ta); ta.select();
-      try { document.execCommand('copy'); toast('已复制'); } catch (e) { toast('复制失败，请长按手动复制'); }
+      try { document.execCommand('copy'); toast(msg); } catch (e) { toast('复制失败，请长按手动复制'); }
       document.body.removeChild(ta);
     }
   }
@@ -282,7 +283,14 @@
       (list.length ? ''
         : '<p class="rec-empty">还没有提交记录，参与活动后可在这里查看帖子数据</p>' +
           '<button class="link-btn" data-demo>生成测试记录看看效果</button>') +
+      updEntry() +
       '</div>';
+  }
+
+  function updEntry() {
+    return '<div class="upd"><button type="button" class="upd-toggle" data-go="records">' +
+      '<span><b>旧帖数据更新</b><em>帖子热度上涨？在提交记录中选择原帖更新数据</em></span>' +
+      '<i>去更新 ›</i></button></div>';
   }
 
   function recordRows(r, full) {
@@ -313,8 +321,8 @@
     return '<div class="rec-item" data-go="record/' + r.id + '">' +
       recordHead(r) + recordRows(r, false) +
       '<div class="rec-foot"><span>' +
-        (rewards.length ? '奖励 ' + claimed + ' / ' + rewards.length + ' 已领取' : '暂无可领奖励') +
-      '</span><span class="more">查看详情 ›</span></div>' +
+        (r.kind === '数据更新' ? '档位奖励在原帖记录中领取' : '奖励 ' + claimed + ' / ' + rewards.length + ' 已领取') +
+      '</span><span class="more">' + (HB.canUpdate(r) ? '<em class="upd-pill">可更新数据</em>' : '') + '查看详情 ›</span></div>' +
       '</div>';
   }
 
@@ -328,16 +336,41 @@
       return;
     }
     var st = recordStatus(r);
-    var rewards = HB.rewardsOf(r);
+    var isUpd = r.kind === '数据更新';
     var claimed = r.claimed || [];
-    var rewardHtml = rewards.length ? rewards.map(function (w) {
+    function claimRow(w, reached) {
       var done = claimed.indexOf(w.key) >= 0;
-      var can = st.c === 'ok' && !done;
+      var can = st.c === 'ok' && reached && !done;
+      var label = done ? '已领取' : st.c === 'reject' ? '不可领取' : st.c !== 'ok' ? '审核通过后领取' : !reached ? '未达到' : '领取 ' + w.name;
       return '<div class="claim-row"><div class="claim-info"><b>' + w.name + '</b><span>' + w.desc + '</span></div>' +
-        '<button class="btn claim' + (done ? ' done' : '') + '" data-claim="' + w.key + '"' + (can ? '' : ' disabled') + '>' +
-        (done ? '已领取' : st.c === 'ok' ? '领取 ' + w.name : st.c === 'reject' ? '不可领取' : '审核通过后领取') +
-        '</button></div>';
-    }).join('') : '<p class="rec-empty">该记录暂无可领取的奖励</p>';
+        '<button class="btn claim' + (done ? ' done' : '') + '" data-claim="' + w.key + '"' + (can ? '' : ' disabled') + '>' + label + '</button></div>';
+    }
+
+    var rewardCard;
+    if (isUpd) {
+      var parent = HB.findRecord(r.parent);
+      rewardCard = '<div class="card"><div class="card-title">奖励领取</div>' +
+        '<p class="note" style="margin-top:0">数据更新审核通过后，新达到的档位奖励会计入原帖，请在原帖记录中领取。数据更新审核时效 3 天。</p>' +
+        (parent ? '<button class="btn block ghost" style="margin-top:12px" data-go="record/' + parent.id + '">查看原帖记录 ›</button>' : '') +
+        '</div>';
+    } else {
+      var R = REWARD[r.type];
+      var rows = claimRow({ key: 'base', name: R.base, desc: '基础奖励 · 首次发布审核通过' }, true);
+      if (r.act !== 'act3') {
+        rows += '<div class="sub-title" style="margin:14px 0 4px">作品数据档位奖励<span>每达到一档均可领取</span></div>' +
+          HB.tiersOf(r).map(function (t) { return claimRow(t, t.reached); }).join('');
+      }
+      rewardCard = '<div class="card"><div class="card-title">奖励领取</div>' + rows +
+        (st.c === 'ing' ? '<p class="note">首次发布的帖子审核时效 1 天，审核通过后即可领取基础奖励。</p>' : '') +
+        '</div>';
+    }
+
+    var shotCard = (r.shots && r.shots.length) || r.shotsDropped ?
+      '<div class="card"><div class="card-title">上传截图<span class="sub">点击查看大图</span></div>' +
+        (r.shots && r.shots.length ? '<div class="rec-shots big">' + r.shots.map(function (s) {
+          return '<img src="' + s + '" alt="" data-view>';
+        }).join('') + '</div>' : '<p class="rec-empty">截图因存储空间不足未保存</p>') +
+      '</div>' : '';
 
     app.innerHTML = head +
       '<div class="card">' + recordHead(r) + recordRows(r, true) +
@@ -345,15 +378,31 @@
         '<button class="btn ghost" data-copy-link>复制</button></div>' +
         (st.c === 'reject' && r.rejectReason ? '<div class="warn" style="margin-top:12px">未通过原因：' + esc(r.rejectReason) + '</div>' : '') +
       '</div>' +
-      '<div class="card"><div class="card-title">上传截图<span class="sub">点击查看大图</span></div>' +
-        (r.shots && r.shots.length ? '<div class="rec-shots big">' + r.shots.map(function (s) {
-          return '<img src="' + s + '" alt="" data-view>';
-        }).join('') + '</div>' : '<p class="rec-empty">' + (r.shotsDropped ? '截图因存储空间不足未保存' : '未上传截图') + '</p>') +
-      '</div>' +
-      '<div class="card"><div class="card-title">奖励领取</div>' + rewardHtml +
-        (st.c === 'ing' ? '<p class="note">审核通过后即可领取对应奖励，普通内容 1 个工作日内完成审核。</p>' : '') +
-      '</div>' +
+      shotCard +
+      (HB.canUpdate(r) ? updateCard(r) : '') +
+      rewardCard +
       '</div></div>';
+  }
+
+  function updateCard(r) {
+    var ups = HB.updatesOf(r).sort(function (a, b) { return b.time - a.time; });
+    var pending = ups.some(function (u) { return u.status === 'ing'; });
+    var hist = ups.length ? '<div class="upd-hist">' + ups.map(function (u) {
+      var s = recordStatus(u);
+      return '<div class="upd-hist-row" data-go="record/' + u.id + '"><span>' + fmtTime(u.time) + '</span>' +
+        '<span>点赞+收藏 <b>' + (+u.interact).toLocaleString() + '</b></span>' +
+        '<span class="rec-st ' + s.c + '">' + s.t + '</span></div>';
+    }).join('') + '</div>' : '';
+    var form = pending
+      ? '<p class="note">已有一次数据更新正在审核中，审核时效 3 天，审核完成后可再次更新。</p>'
+      : '<form id="updForm" novalidate>' +
+          uploadField('upd', '帖子后台数据截图', '请上传最新的帖子后台数据页截图，需清晰展示浏览量、点赞、收藏') +
+          statsFields('u') +
+          '<button class="btn block" type="submit">提交数据更新</button>' +
+        '</form>';
+    return '<div class="card"><div class="card-title">旧帖数据更新<span class="sub">审核时效 3 天</span></div>' +
+      '<p class="step-desc">帖子热度上涨后，提交最新作品数据，审核通过后达到的每一档奖励都可在下方领取，不占用每日参与次数。</p>' +
+      hist + form + '</div>';
   }
 
   function renderRecords() {
@@ -367,6 +416,7 @@
         return '<button data-rec-filter="' + t[0] + '" class="' + (f === t[0] ? 'on' : '') + '">' + t[1] + '</button>';
       }).join('') + '</div></div>' +
       '<div class="act-body">' +
+      '<div class="rec-tip"><b>旧帖数据更新</b>选择要更新的原帖进入详情，上传最新后台数据截图并填写浏览量、点赞、收藏，审核时效 3 天。</div>' +
       (shown.length ? shown.map(function (r) { return '<div class="card">' + recordItem(r) + '</div>'; }).join('')
         : '<div class="card"><p class="rec-empty">暂无记录</p></div>') +
       '</div></div>';
@@ -398,11 +448,13 @@
       body + '</div>';
   }
 
-  function codeBody() {
+  function codeBody(where) {
     var code = shareCode();
+    where = where || '帖子';
     return '<div class="code-box"><div class="code ' + (code ? '' : 'empty') + '">' + (code || '尚未领取分享码') + '</div>' +
-      (code ? '<button class="btn ghost" data-copy-code>复制</button>' : '<button class="btn" data-get-code>立即领取</button>') +
-      '</div><p class="note">分享码与话本账号 ID 绑定，系统将校验分享码是否属于当前账号，使用他人分享码无效。</p>';
+      (code ? '<button class="btn ghost" data-copy-code="' + where + '">复制</button>' : '<button class="btn" data-get-code>立即领取</button>') +
+      '</div><div class="code-must">分享码必须添加在' + where + '末尾，未添加或位置不对将无法通过审核</div>' +
+      '<p class="note">分享码与话本账号 ID 绑定，系统将校验分享码是否属于当前账号，使用他人分享码无效。</p>';
   }
 
   function publishBody(text) {
@@ -414,7 +466,7 @@
     var html = '<div class="base-reward"><div><div class="t">基础奖励</div><div class="v">' + r.base + '</div></div>' +
       '<div class="t" style="text-align:right">' + r.baseDesc.replace(' · ', '<br>') + '</div></div>';
     if (withTiers) {
-      html += '<div class="muted" style="margin-bottom:8px">热度追加奖励 · 统计指标：累计点赞数 + 收藏数</div>' +
+      html += '<div class="muted" style="margin-bottom:8px">热度追加奖励 · 点赞数 + 收藏数每达到一档，该档奖励均可领取</div>' +
         '<div class="tiers">' + r.tiers.map(function (t) {
           return '<div class="tier' + (t.top ? ' top' : '') + '"><span class="lv">' + t.lv + '</span><span class="rw">' + t.rw + '</span></div>';
         }).join('') + '</div>';
@@ -444,11 +496,11 @@
     return '<div class="foot-notes ' + (cls || '') + '"><div class="hd">' + (title || '奖励说明') + '</div><ol>' +
       '<li>每种奖励每日最多参与 1 次，每日首次有效分享可领基础奖励。</li>' +
       '<li>同一条分享内容仅可选择一种奖励模式，不可同时领取小说奖励和智能体奖励。</li>' +
-      '<li>单篇帖子首次提交审核通过后，可领取基础奖励；后续每达到一个热度档位，即可领取该档位对应的奖励。</li>' +
-      '<li>各档位奖励独立发放、互不抵扣，同一奖励档位不可重复领取。</li>' +
-      '<li>参与活动需领取专属分享码，分享码与话本账号 ID 绑定，使用他人分享码、冒用账号等行为无效。</li>' +
+      '<li>单篇帖子首次发布审核通过后，可领取基础奖励；作品数据每达到一个档位，该档奖励均可领取。</li>' +
+      '<li>各档位奖励独立发放、互不抵扣，达到高档位时低档位奖励同样可领，同一档位不可重复领取。</li>' +
+      '<li>参与活动需领取专属分享码，分享码必须添加在帖子末尾；分享码与话本账号 ID 绑定，使用他人分享码、冒用账号等行为无效。</li>' +
       '<li>单个用户每月最多领取 5 次万赞现金奖励，超出后帖子仍可参与，其他奖励正常计算。</li>' +
-      '<li>普通内容 1 个工作日内完成审核，审核通过后奖励自动发放至话本账号。</li>' +
+      '<li>首次发布的帖子审核时效 1 天；旧帖数据更新审核时效 3 天，请在「我的提交记录」中选择原帖更新。</li>' +
       '</ol></div>';
   }
 
@@ -459,12 +511,7 @@
     var plats = ['小红书', '抖音', '快手'].map(function (p) {
       return '<button type="button" data-plat="' + p + '" class="' + (state.platform === p ? 'on' : '') + '">' + p + '</button>';
     }).join('');
-    var shots = '';
-    if (opts.shots) shots += uploadField('comment', '评论截图');
-    if (opts.data) {
-      shots += uploadField('data', '帖子后台数据截图', '请上传帖子后台数据页截图，需清晰展示浏览量、点赞、收藏') +
-        statsFields('f');
-    }
+    var shots = opts.shots ? uploadField('comment', '评论截图') : '';
     return '<div class="quota"><span>奖励模式：' + TYPES[state.type].name + '</span>' +
       '<span>今日剩余 <b>' + left + '</b> / ' + act.limit + ' 次</span></div>' +
       '<form id="submitForm" novalidate>' +
@@ -475,7 +522,7 @@
         '<div class="field"><label>分享码<em>*</em></label><input id="fCode" placeholder="请输入你的专属分享码" value="' + esc(shareCode()) + '" /></div>' +
         '<button class="btn block" type="submit"' + (left ? '' : ' disabled') + '>' + (left ? '提交审核' : '今日次数已用完') + '</button>' +
       '</form>' +
-      (opts.update ? updateBody() : '');
+      (opts.updEntry ? '<div class="upd-wrap">' + updEntry() + '</div>' : '');
   }
 
   function uploadField(bucket, label, hint) {
@@ -488,23 +535,6 @@
       }).join('') +
       (list.length < 3 ? '<label class="add"><b>+</b>上传截图<input type="file" accept="image/*" hidden data-bucket="' + bucket + '"></label>' : '') +
       '</div></div>';
-  }
-
-  function updateBody() {
-    var open = state.updOpen;
-    return '<div class="upd">' +
-      '<button type="button" class="upd-toggle" data-upd-toggle>' +
-        '<span><b>旧帖数据更新申请</b><em>已提交过的帖子热度上涨？申请更新数据</em></span>' +
-        '<i>' + (open ? '收起' : '去申请') + '</i></button>' +
-      (open ?
-        '<form id="updForm" class="upd-form" novalidate>' +
-          '<p class="step-desc">平台核实最新点赞 + 收藏数据后，每个新达到的档位均可领取对应奖励，不占用每日参与次数。</p>' +
-          '<div class="field"><label>原帖链接<em>*</em></label><input id="uLink" type="url" placeholder="粘贴已提交过的帖子链接" /></div>' +
-          uploadField('upd', '帖子后台数据截图', '请上传最新的帖子后台数据页截图，需清晰展示浏览量、点赞、收藏') +
-          statsFields('u') +
-          '<button class="btn block ghost" type="submit">提交数据更新申请</button>' +
-        '</form>' : '') +
-      '</div>';
   }
 
   // ---------------- 活动页 ----------------
@@ -520,8 +550,8 @@
       step(1, '领取素材 · 复制文案', '点击复制', copies) +
       step(2, '下载活动配图', '点击下载', '<div class="posters">' + posters + '</div>') +
       step(3, '领取专属分享码', '', codeBody()) +
-      step(4, '发布到社交平台', '', publishBody('将官方文案、配图和分享码一起发布到小红书、抖音、快手等社交媒体平台。')) +
-      step(5, '上传帖子链接及数据', '', submitBody('act1', { update: true, data: true })) +
+      step(4, '发布到社交平台', '', publishBody('将官方文案和配图发布到小红书、抖音、快手等社交媒体平台，并在<b>帖子末尾</b>添加专属分享码。')) +
+      step(5, '上传帖子链接及分享码', '', submitBody('act1', { updEntry: true })) +
       step(6, '审核通过领取奖励', '热度提升追加奖励', rewardBody(true));
   }
 
@@ -540,8 +570,8 @@
       '</div></div>';
     return intro +
       step(1, '领取专属分享码', '', codeBody()) +
-      step(2, '发布原创内容', '', publishBody('围绕上方推荐方向自主创作，带上分享码发布到小红书、抖音、快手等平台。')) +
-      step(3, '上传帖子链接及数据', '', submitBody('act2', { update: true, data: true })) +
+      step(2, '发布原创内容', '', publishBody('围绕上方推荐方向自主创作，发布到小红书、抖音、快手等平台，并在<b>帖子末尾</b>添加专属分享码。')) +
+      step(3, '上传帖子链接及分享码', '', submitBody('act2', { updEntry: true })) +
       step(4, '审核通过获得奖励', '热度提升追加奖励', rewardBody(true));
   }
 
@@ -560,7 +590,7 @@
       }).join('') + '</div>' +
       '<div class="warn" style="margin-top:12px">需寻找 <b>非官方账号、非本人发布</b> 的相关帖子进行评论。</div>';
     return introBanner(a) +
-      step(1, '领取专属分享码', '', codeBody()) +
+      step(1, '领取专属分享码', '', codeBody('评论')) +
       step(2, '选择帖子', '', pick) +
       step(3, '发布评论', '', list(a.commentReq[t], 'dots')) +
       step(4, '截图并上传', '每日 2 次', list(a.shotReq, 'dots') +
@@ -587,17 +617,17 @@
           var R = REWARD[k];
           return '<b>（' + '一二'[i] + '）' + (k === 'book' ? '小说' : '智能体') + '分享奖励</b><br>' +
             '基础奖励：完成有效分享，每日首次参与可得 ' + R.base + '，每日最多参与 1 次。<br>' +
-            '热度追加奖励（统计指标：点赞数 + 收藏数），每达到一个档位即可领取该档位奖励：<br>' +
+            '热度追加奖励（统计指标：点赞数 + 收藏数），作品数据每达到一个档位，该档奖励均可领取：<br>' +
             R.tiers.map(function (t) { return '· ' + t.lv + ' 互动：' + t.rw; }).join('<br>');
         }).join('<br><br>')],
       ['三、奖励说明',
         '<b>1. 小说与智能体奖励不可重复领取</b><br>同一条分享内容仅可选择一种奖励模式，不可同时领取小说奖励和智能体奖励。<br>' +
-        '<b>2. 单篇帖子奖励规则</b><br>单篇帖子可根据热度变化持续获得追加奖励：首次提交审核通过后，可领取基础奖励；后续达到更高热度档位，可获得对应追加奖励；同一奖励档位不可重复领取。<br>' +
-        '<b>3. 分享码绑定规则</b><br>参与活动需领取专属分享码。分享码与话本账号 ID 绑定；用户提交内容时需上传对应分享码；系统会校验分享码是否属于当前账号；使用他人分享码、冒用账号等行为无效。'],
+        '<b>2. 单篇帖子奖励规则</b><br>单篇帖子可根据热度变化持续获得追加奖励：首次发布审核通过后，可领取基础奖励；作品数据每达到一个档位，该档奖励均可领取，达到高档位时低档位奖励同样可领；同一奖励档位不可重复领取。<br>' +
+        '<b>3. 分享码绑定规则</b><br>参与活动需领取专属分享码，<b>分享码必须添加在帖子末尾</b>。分享码与话本账号 ID 绑定；用户提交内容时需上传对应分享码；系统会校验分享码是否属于当前账号；使用他人分享码、冒用账号等行为无效。'],
       ['四、参与限制', '活动一（官方素材分享）每日最多 1 次；活动二（原创内容分享）每日最多 1 次；活动三（评论区分享）每日最多 2 次。单个用户每月最多领取 5 次万赞现金奖励，超过后帖子仍可参与，但不再发放现金奖励，其他奖励正常计算。'],
       ['五、内容有效期', '提交内容后 2 个月内不得删除、隐藏帖子，不得修改为与活动无关内容或限制他人查看。如发现违规，平台有权取消活动资格、收回违规奖励、限制后续参与。'],
-      ['六、审核规则', '平台将审核：是否为本人账号发布、是否包含有效分享码、发布时间是否符合要求、内容是否符合活动规范、是否存在刷赞刷收藏等异常行为。普通内容 1 个工作日内完成审核，高热内容视情况延长，审核通过后奖励自动发放至账号。'],
-      ['七、热度追踪', '帖子提交成功后，平台会持续关注点赞数、收藏数变化，每达到一个新的奖励档位，即可领取该档位对应奖励，用户无需重复提交。'],
+      ['六、审核规则', '平台将审核：是否为本人账号发布、帖子末尾是否包含有效分享码、发布时间是否符合要求、内容是否符合活动规范、是否存在刷赞刷收藏等异常行为。首次发布的帖子审核时效 1 天，旧帖数据更新审核时效 3 天。'],
+      ['七、旧帖数据更新', '首次提交无需填写浏览量、点赞、收藏。帖子热度上涨后，可在「我的提交记录」中选择原帖，上传最新后台数据截图并填写浏览量、点赞、收藏，审核通过后作品数据达到的每一档奖励均可在原帖记录中领取。数据更新不占用每日参与次数。'],
       ['八、违规处理', '使用多个账号重复参与、使用他人帖子、搬运复制他人内容、虚假编造体验、购买点赞收藏、提交虚假截图、恶意刷取奖励等行为，平台有权取消资格、不发放或收回奖励、限制账号参与活动。'],
       ['九、特别说明', '活动奖励以平台审核结果为准；如发现异常增长或违规行为，平台有权重新审核奖励资格；活动规则可能根据实际运营情况调整，调整内容将在活动页面公布。']
     ];
@@ -668,7 +698,12 @@
   function renderKeepingForm(act) {
     var vals = {};
     app.querySelectorAll('input[id]:not([type=file])').forEach(function (i) { vals[i.id] = i.value; });
-    renderAct(act, true);
+    if (act) renderAct(act, true);
+    else {
+      var top = screen.scrollTop;
+      renderRecordDetail(location.hash.replace('#/record/', ''));
+      screen.scrollTop = top;
+    }
     Object.keys(vals).forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.value = vals[id];
@@ -716,10 +751,13 @@
       toast('领取成功：' + code);
       return;
     }
-    if (el.hasAttribute('data-copy-code')) { copyText(shareCode()); return; }
+    if (el.hasAttribute('data-copy-code')) {
+      copyText(shareCode(), '已复制，请将分享码添加在' + el.getAttribute('data-copy-code') + '末尾');
+      return;
+    }
     if (el.hasAttribute('data-copy')) {
       var txt = ACTS.act1.copies[state.type][+el.getAttribute('data-copy')];
-      copyText(txt + (shareCode() ? '\n分享码：' + shareCode() : ''));
+      copyText(txt + (shareCode() ? '\n分享码：' + shareCode() : ''), shareCode() ? '已复制，分享码已附在文案末尾，请勿删除' : '已复制');
       return;
     }
     if (el.hasAttribute('data-dl')) {
@@ -748,11 +786,6 @@
       if (link) link.placeholder = '粘贴' + state.platform + '帖子分享链接';
       return;
     }
-    if (el.hasAttribute('data-upd-toggle')) {
-      state.updOpen = !state.updOpen;
-      renderKeepingForm(act);
-      return;
-    }
     if (el.hasAttribute('data-del')) {
       var parts = el.getAttribute('data-del').split(':');
       state.shots[parts[0]].splice(+parts[1], 1);
@@ -770,11 +803,11 @@
       var rec = HB.findRecord(rid);
       if (!rec || HB.statusOf(rec).c !== 'ok') return;
       var key = el.getAttribute('data-claim');
-      var got = (rec.claimed || []).concat(key);
-      HB.updateRecord(rid, { claimed: got });
       var w = HB.rewardsOf(rec).filter(function (x) { return x.key === key; })[0];
+      if (!w || (rec.claimed || []).indexOf(key) >= 0) return;
+      HB.updateRecord(rid, { claimed: (rec.claimed || []).concat(key) });
       renderRecordDetail(rid);
-      toast('领取成功：' + (w ? w.name : '奖励') + '，已发放至话本账号');
+      toast('领取成功：' + w.name + '，已发放至话本账号');
       return;
     }
     if (el.hasAttribute('data-copy-link')) {
@@ -802,42 +835,36 @@
     e.preventDefault();
     var act = currentAct();
     if (e.target.id === 'updForm') {
-      var uLink = document.getElementById('uLink').value.trim();
-      if (!validLink(uLink)) return toast('请填写有效的原帖链接');
+      var parent = HB.findRecord(location.hash.replace('#/record/', ''));
+      if (!parent) return;
       if (!state.shots.upd.length) return toast('请上传帖子后台数据截图');
       var us = readStats('u');
       if (!us) return toast('请完整填写浏览量、点赞、收藏');
       addRecord({
-        act: act, actTitle: ACTS[act].title, kind: '数据更新', type: state.type,
-        link: uLink, views: us.views, likes: us.likes, favs: us.favs, interact: us.interact,
+        act: parent.act, actTitle: parent.actTitle, kind: '数据更新', type: parent.type, platform: parent.platform,
+        link: parent.link, parent: parent.id, views: us.views, likes: us.likes, favs: us.favs, interact: us.interact,
         shots: state.shots.upd.slice()
       });
-      state.updOpen = false;
       state.shots.upd = [];
-      renderKeepingForm(act);
-      toast('数据更新申请已提交，审核通过后可领取新达到档位的奖励');
+      renderKeepingForm(null);
+      toast('数据更新已提交，审核时效 3 天');
       return;
     }
     var link = document.getElementById('fLink').value.trim();
     var code = document.getElementById('fCode').value.trim().toUpperCase();
-    var hasData = !!document.getElementById('fViews');
-    var fs = hasData ? readStats('f') : {};
     if (usedToday(act) >= ACTS[act].limit) return toast('今日参与次数已用完');
     if (!validLink(link)) return toast('请填写有效的帖子链接');
     if (act === 'act3' && !state.shots.comment.length) return toast('请上传评论截图');
-    if (hasData && !state.shots.data.length) return toast('请上传帖子后台数据截图');
-    if (hasData && !fs) return toast('请完整填写浏览量、点赞、收藏');
     if (!shareCode()) return toast('请先领取专属分享码');
     if (code !== shareCode()) return toast('分享码与当前账号不匹配');
     addUsed(act);
     addRecord({
       act: act, actTitle: ACTS[act].title, kind: act === 'act3' ? '评论分享' : '首次提交', type: state.type,
-      platform: state.platform, link: link, views: fs.views, likes: fs.likes, favs: fs.favs, interact: fs.interact,
-      shots: (act === 'act3' ? state.shots.comment : state.shots.data).slice()
+      platform: state.platform, link: link, shots: act === 'act3' ? state.shots.comment.slice() : []
     });
     state.shots = emptyShots();
     renderAct(act, true);
-    toast('提交成功！已选择「' + TYPES[state.type].name + '」奖励模式，预计 1 个工作日内完成审核');
+    toast('提交成功！已选择「' + TYPES[state.type].name + '」奖励模式，审核时效 1 天');
   });
 
   window.addEventListener('hashchange', route);

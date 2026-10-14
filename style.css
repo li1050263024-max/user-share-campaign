@@ -165,6 +165,27 @@ input, select, textarea { font: inherit; }
 .upd-toggle i { flex: none; font-style: normal; font-size: 12px; font-weight: 600; color: var(--pri-deep); }
 .page.agent .upd-toggle i { color: var(--agent-deep); }
 .upd-form { margin-top: 12px; }
+.code-must {
+  margin-top: 10px; padding: 8px 12px; border-radius: 10px;
+  background: #fff4f6; color: #b0506a; font-size: 13px; font-weight: 600; line-height: 1.6;
+}
+.rec-tip {
+  margin-bottom: 12px; padding: 12px 14px; border-radius: 14px; background: #fff;
+  border: 1px solid #f3e6ea; font-size: 12px; color: var(--muted); line-height: 1.7;
+}
+.rec-tip b { display: block; font-size: 14px; color: #3a3033; margin-bottom: 2px; }
+.upd-pill {
+  font-style: normal; font-weight: 500; font-size: 11px; margin-right: 8px;
+  padding: 1px 7px; border-radius: 8px; background: #fff1f4; color: var(--pri-deep);
+}
+.upd-hist { margin: 10px 0 4px; border-radius: 12px; background: #faf8f8; padding: 2px 12px; }
+.upd-hist-row {
+  display: flex; align-items: center; gap: 10px; padding: 10px 0; font-size: 12px; color: var(--muted); cursor: pointer;
+}
+.upd-hist-row span { white-space: nowrap; }
+.upd-hist-row + .upd-hist-row { border-top: 1px solid #f0eaea; }
+.upd-hist-row b { color: #2f2629; }
+#updForm { margin-top: 12px; }
 
 /* ---------- 步骤卡片 ---------- */
 .step-head {
