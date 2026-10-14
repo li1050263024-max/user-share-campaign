@@ -547,14 +547,14 @@
       '<div class="poster"><canvas width="360" height="480" data-poster="0"></canvas></div>' +
       '<div class="poster-side">' +
         '<button class="btn block ghost" data-dl="0">下载配图</button>' +
-        '<div class="own-shot"><b>更推荐自己截图</b>' +
-          '截一张你' + own + '，和官方配图一起发布，真实的内容更容易获得点赞和收藏。</div>' +
+        '<div class="own-shot"><b>优先使用自己的截图</b>' +
+          '推荐截一张你' + own + '来发布，真实内容更容易获得点赞和收藏；暂时没有合适的截图，也可以直接使用官方配图。</div>' +
       '</div></div>';
     return introBanner(a) +
       step(1, '领取素材 · 复制文案', '点击复制', copies) +
       step(2, '下载活动配图', '', posters) +
       step(3, '领取专属分享码', '', codeBody()) +
-      step(4, '发布到社交平台', '', publishBody('将官方文案、配图和你自己的截图一起发布到小红书、抖音、快手等社交媒体平台，并在<b>帖子末尾</b>添加专属分享码。')) +
+      step(4, '发布到社交平台', '', publishBody('将官方文案搭配你的截图（或官方配图）发布到小红书、抖音、快手等社交媒体平台，并在<b>帖子末尾</b>添加专属分享码。')) +
       step(5, '上传帖子链接及分享码', '', submitBody('act1', { updEntry: true })) +
       step(6, '审核通过领取奖励', '热度提升追加奖励', rewardBody(true));
   }
