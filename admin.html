@@ -82,6 +82,12 @@
     td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
     .act-name { font-weight: 700; white-space: nowrap; }
     .kind { display: inline-block; margin-top: 3px; font-size: 11px; padding: 1px 6px; border-radius: 4px; background: #f5f1f1; color: #6e5f63; }
+    .post-mode {
+      display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 6px; white-space: nowrap;
+    }
+    .post-mode.first { background: #eef8f1; color: #2f8a52; }
+    .post-mode.upd { background: #fff4e8; color: #c2802e; }
+    .post-mode.cmt { background: #f0f3ff; color: #6f82c8; }
     .type { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
     .type.book { background: #fff1ee; color: #c8687f; }
     .type.agent { background: #f0f3ff; color: #6f82c8; }
@@ -162,11 +168,11 @@
             <option value="agent">智能体</option>
           </select>
         </label>
-        <label>提交类型
+        <label>首发 / 更新
           <select id="fKind">
             <option value="">全部</option>
-            <option value="首次提交">首次提交</option>
-            <option value="数据更新">数据更新</option>
+            <option value="首次提交">首发</option>
+            <option value="数据更新">更新</option>
             <option value="评论分享">评论分享</option>
           </select>
         </label>
@@ -178,6 +184,12 @@
             <option value="reject">未通过</option>
           </select>
         </label>
+        <label>提交时间
+          <select id="fSort">
+            <option value="desc">倒序（新→旧）</option>
+            <option value="asc">正序（旧→新）</option>
+          </select>
+        </label>
         <input id="fKey" placeholder="搜索帖子链接 / 分享码" />
         <span class="count" id="count"></span>
       </div>
@@ -185,7 +197,7 @@
         <table>
           <thead>
             <tr>
-              <th>提交时间</th><th>活动 / 类型</th><th>宣传内容</th><th>平台</th><th>帖子链接</th>
+              <th>提交时间</th><th>首发 / 更新</th><th>活动</th><th>宣传内容</th><th>平台</th><th>帖子链接</th>
               <th>分享码</th><th style="text-align:right">浏览量</th><th style="text-align:right">点赞</th><th style="text-align:right">收藏</th><th style="text-align:right">点赞+收藏</th>
               <th>截图</th><th>审核状态</th><th>奖励领取</th><th>操作</th>
             </tr>
@@ -200,7 +212,7 @@
   <div class="viewer" id="viewer"><img alt="" /></div>
   <div class="toast" id="toast"></div>
 
-  <script src="store.js?v=20261014d"></script>
+  <script src="store.js?v=20261019a"></script>
   <script>
   (function () {
     'use strict';
@@ -236,10 +248,17 @@
     });
 
     // ---------- 数据 ----------
+    function postMode(r) {
+      if (r.kind === '数据更新') return { t: '更新', c: 'upd' };
+      if (r.kind === '评论分享') return { t: '评论分享', c: 'cmt' };
+      return { t: '首发', c: 'first' };
+    }
+
     function filtered() {
       var act = $('fAct').value, type = $('fType').value, kind = $('fKind').value, st = $('fStatus').value;
       var key = $('fKey').value.trim().toLowerCase();
-      return HB.getRecords().filter(function (r) {
+      var sort = $('fSort').value;
+      var list = HB.getRecords().filter(function (r) {
         if (act && r.act !== act) return false;
         if (type && r.type !== type) return false;
         if (kind && r.kind !== kind) return false;
@@ -247,6 +266,10 @@
         if (key && (String(r.link || '') + ' ' + String(r.code || '')).toLowerCase().indexOf(key) < 0) return false;
         return true;
       });
+      list.sort(function (a, b) {
+        return sort === 'asc' ? (a.time || 0) - (b.time || 0) : (b.time || 0) - (a.time || 0);
+      });
+      return list;
     }
 
     function renderStats(all) {
@@ -285,10 +308,12 @@
       if (st.c !== 'reject') ops.push('<button class="btn sm no" data-op="reject" data-id="' + r.id + '">驳回</button>');
       if (st.c !== 'ing') ops.push('<button class="btn sm" data-op="ing" data-id="' + r.id + '">重置</button>');
       ops.push('<button class="btn sm danger" data-op="del" data-id="' + r.id + '">删除</button>');
+      var mode = postMode(r);
       return '<tr>' +
         '<td style="white-space:nowrap">' + HB.fmtTime(r.time) + '</td>' +
-        '<td><div class="act-name">' + esc(r.actTitle || HB.ACT_TITLES[r.act]) + '</div><span class="kind">' + esc(r.kind) + '</span>' +
+        '<td><span class="post-mode ' + mode.c + '">' + mode.t + '</span>' +
           (r.demo ? ' <span class="kind" style="background:#eef3ff;color:#5a6aab">测试</span>' : '') + '</td>' +
+        '<td><div class="act-name">' + esc(r.actTitle || HB.ACT_TITLES[r.act]) + '</div></td>' +
         '<td><span class="type ' + r.type + '">' + HB.TYPES[r.type].name + '</span></td>' +
         '<td style="white-space:nowrap">' + esc(r.platform || '-') + '</td>' +
         '<td class="link"><a href="' + esc(r.link) + '" target="_blank" rel="noopener" title="' + esc(r.link) + '">' + esc(r.link) + '</a></td>' +
@@ -318,7 +343,7 @@
         : '暂无用户提交数据<br>数据保存在浏览器本地，需要在同一浏览器中打开活动页提交后，才会显示在这里';
     }
 
-    ['fAct', 'fType', 'fKind', 'fStatus'].forEach(function (id) { $(id).addEventListener('change', render); });
+    ['fAct', 'fType', 'fKind', 'fStatus', 'fSort'].forEach(function (id) { $(id).addEventListener('change', render); });
     $('fKey').addEventListener('input', render);
     $('refresh').addEventListener('click', function () { render(); toast('已刷新'); });
     $('seed').addEventListener('click', function () { HB.seedDemo(); render(); toast('已生成 5 条测试数据'); });
@@ -363,11 +388,11 @@
     $('export').addEventListener('click', function () {
       var list = filtered();
       if (!list.length) return toast('没有可导出的数据');
-      var head = ['提交时间', '活动', '提交类型', '宣传内容', '平台', '帖子链接', '分享码', '浏览量', '点赞', '收藏', '点赞+收藏', '截图数', '审核状态', '驳回原因', '可领奖励', '已领奖励'];
+      var head = ['提交时间', '首发/更新', '活动', '宣传内容', '平台', '帖子链接', '分享码', '浏览量', '点赞', '收藏', '点赞+收藏', '截图数', '审核状态', '驳回原因', '可领奖励', '已领奖励'];
       var lines = list.map(function (r) {
         var rewards = HB.rewardsOf(r), claimed = r.claimed || [];
         return [
-          HB.fmtTime(r.time), r.actTitle || HB.ACT_TITLES[r.act], r.kind, HB.TYPES[r.type].name, r.platform || '',
+          HB.fmtTime(r.time), postMode(r).t, r.actTitle || HB.ACT_TITLES[r.act], HB.TYPES[r.type].name, r.platform || '',
           r.link, r.code || '', r.views || '', r.likes || '', r.favs || '', r.interact || '', (r.shots || []).length,
           HB.statusOf(r).t, r.rejectReason || '',
           rewards.map(function (w) { return w.name; }).join('；'),
