@@ -376,10 +376,30 @@ input, select, textarea { font: inherit; }
 .copy-item { background: var(--soft); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
 .copy-item:last-child { margin-bottom: 0; }
 .page.agent .copy-item { background: #fafbff; }
-.copy-item .txt { font-size: 13px; line-height: 1.75; color: #3a3033; white-space: pre-wrap; }
+.copy-item .txt { font-size: 13px; line-height: 1.85; color: #3a3033; white-space: pre-wrap; }
 .copy-item .txt.clamp3 {
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden;
 }
+.copy-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.copy-dir { font-size: 13px; font-weight: 700; color: var(--pri-deep); }
+.page.agent .copy-dir { color: var(--agent-deep); }
+.copy-n { margin-left: auto; font-size: 12px; color: var(--muted); }
+.btn.sm { padding: 6px 10px; font-size: 12px; }
+.copy-title { font-size: 15px; font-weight: 700; color: #2f2629; line-height: 1.6; margin-bottom: 8px; }
+.copy-tip { margin-top: 10px; font-size: 12px; color: var(--muted); line-height: 1.6; }
+.fill-in {
+  display: inline-block; min-width: 72px; max-width: 100%; width: auto;
+  margin: 2px 2px; padding: 2px 8px; border: none; border-bottom: 1.5px dashed var(--pri);
+  background: rgba(232, 135, 159, .08); border-radius: 4px 4px 0 0;
+  font: inherit; font-size: 13px; color: var(--pri-deep); outline: none; vertical-align: baseline;
+}
+.fill-in:focus { background: rgba(232, 135, 159, .16); border-bottom-style: solid; }
+.page.agent .fill-in {
+  border-bottom-color: var(--agent); background: rgba(111, 130, 200, .08); color: var(--agent-deep);
+}
+.page.agent .fill-in:focus { background: rgba(111, 130, 200, .16); }
+.fill-in::placeholder { color: #c4a0aa; font-size: 12px; }
+.page.agent .fill-in::placeholder { color: #a8b2d4; }
 
 /* 原创发布要求 */
 .req-form { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
@@ -412,7 +432,8 @@ input, select, textarea { font: inherit; }
 .page.agent .dir-row .no { background: #f0f3ff; color: var(--agent-deep); }
 .dir-tip { font-size: 12px; color: var(--muted); line-height: 1.7; margin-top: 6px; }
 
-.copy-item .ops { display: flex; justify-content: flex-end; margin-top: 8px; }
+.copy-item .ops { display: flex; justify-content: flex-end; margin-top: 12px; }
+.copy-item.fillable .ops .btn { min-width: 110px; }
 
 /* 配图 */
 .posters { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }

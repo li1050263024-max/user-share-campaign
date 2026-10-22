@@ -20,12 +20,56 @@
       },
       copies: {
         book: [
-          '最近在「话本小说」挖到宝藏了！剧情节奏超紧凑，名场面一个接一个，熬夜也停不下来～同人题材也超多，书荒的姐妹快冲！\n#话本小说 #小说推荐 #书荒推荐',
-          '书荒救星来了！「话本小说」免费小说平台，热门同人、原创都能找到，人物关系写得太好嗑了，已经连追三本，强推！\n#话本小说 #同人小说 #免费小说'
+          {
+            dir: '明星同人 · 嗑CP',
+            tip: '建议配图：作品信息页 / 嗑CP / 喜欢的情节',
+            title: '这篇同人里的相处方式，真的很对我的胃口',
+            body: '最近在话本小说看{作品名}，好喜欢作者笔下{CP名}的相处方式。\n不仅是能直接看出来他们有多在意对方，从对话和动作和很多细节中都能 get 到作者的用意啊，有些地方看得我反复打滚尖叫，前面看着还没什么，读到后面再翻回来，感觉完全不一样了。\n有没有人也喜欢这种{关系设定}？想交换同人口粮！'
+          },
+          {
+            dir: '明星同人 · 新设定',
+            tip: '建议配图：作品信息页 / 嗑CP / 喜欢的情节',
+            title: '没吃过家产这种设定，所以我点开了这篇',
+            body: '其实我经常想如果我推是另外一种身份，是不是会和现在有很多不同？\n在话本小说看{作品名}的时候，就是这个设定把我吸引进去了。原本想随便看看，结果看到{具体剧情}，开始认真好奇后面会怎么发展。\n（分享几张喜欢的片段）比起单纯换个身份，我更喜欢作者写出了完全不同的经历和感觉，像是家产的平行时空。'
+          },
+          {
+            dir: '影视综同人 · 嗑CP',
+            tip: '建议配图：作品信息页 / 嗑CP / 新走向 / 新设定',
+            title: '{剧综名}完结了，但我舍不得还想继续看下去',
+            body: '{剧综名}看完了，我的 CP 还没嗑完。\n看完{剧综名}之后，还想看{CP名}更多的故事，于是最近在话本小说找同人看。\n这篇《{作品名}》写的是{故事设定}。最喜欢{喜欢情节}，就是这种{氛围感}，让我忍不住来回看！！！\n把喜欢的片段放图里了，有好文欢迎来找我玩！！！'
+          },
+          {
+            dir: '影视综同人 · 剧情',
+            tip: '建议配图：作品信息页 / 嗑CP / 新走向 / 新设定',
+            title: '给遗憾找一个不同的答案',
+            body: '如果那时候换一个选择，结局会不会不一样？\n看{作品名}时，一直忘不掉{剧情节点}。原来的故事当然也很好，只是总会忍不住想：有没有另一种可能？\n最近在话本小说找{同人标签}同人看的时候，刚好看到有作品从这里写出了另一条故事线。\n让我印象最深的是{具体情节}。看完就觉得另一种结果好像也很好……'
+          },
+          {
+            dir: '动漫游戏同人 · 嗑CP',
+            tip: '建议配图：作品信息页 / 番外 / 角色新故事 / 正文片段',
+            title: '有没有人懂，我就是喜欢他们这种相处方式',
+            body: '最近在话本小说看到{动漫游戏}的同人，很喜欢里面{CP名}的互动，尤其是{具体片段}。一个{实际表现}，另一个{实际回应}，这段我真的看了不止一遍。\n嗑的就是这种{关系感受}！截了几段分享一下，有没有同样喜欢这种关系写法的朋友？'
+          },
+          {
+            dir: '动漫游戏同人 · 角色与剧情',
+            tip: '建议配图：作品信息页 / 番外 / 角色新故事 / 正文片段',
+            title: '主线之外，我还想看看他们的故事',
+            body: '一直很喜欢{动漫游戏}里的{角色名}，所以会找一些同人故事看。\n最近在话本小说看到一篇讲的是{剧情类型}。最吸引我的是{具体看点}，尤其{某个情节}，让我看到了这个角色不一样的一面。\n不一定要有感情线，光是看他们{日常互动}，我也能看得很开心。'
+          }
         ],
         agent: [
-          '谁懂啊！在「话本」里和 AI 角色聊天也太上头了吧！回复超有代入感，像真的有人在陪我说话～附上我的聊天截图！\n#话本智能体 #AI对话 #智能体推荐',
-          '每天下班第一件事就是打开「话本」找我的智能体聊天，情绪价值拉满，性格设定也超细致，强烈推荐给需要陪伴的你！\n#话本智能体 #AI陪伴 #人机恋'
+          {
+            dir: '设定故事',
+            tip: '建议配图：角色设定页 / 对话截图 /「下一句回复什么」',
+            title: '脑补过的设定，这次能轻松实现了',
+            body: '我很喜欢脑设定，如果{角色名}是{虚构身份}，而我是{自己身份}，我们会怎么认识？\n最近在话本小说和这个 AI 智能体试着聊了一下，故事从{具体场景}开始。我发了「{发送内容}」，ta 竟然回复「{实际回复}」，还有互动和个人空间可以查看，智能体一下子就变得好有温度谁懂……\n分享一下目前聊到的片段。这个开头如果给你，你想怎么和他聊下去？'
+          },
+          {
+            dir: '剧情互动',
+            tip: '建议配图：角色设定页 / 对话截图 /「下一句回复什么」',
+            title: '设定是我写的，剧情却没按我想的走',
+            body: '在话本小说给{角色名}捏了一个自设的智能体，本来想让剧情往{原计划方向}发展。结果聊到{对话节点}的时候，它回了一句「{实际回复}」，我突然觉得好搞笑 / 意外 / 有点想哭，把这段虚构故事的对话放图里了。这个智能体是我自己捏着自用的，虽然偏离我的预想了但也有点喜欢了。'
+          }
         ]
       },
       posters: {
@@ -118,6 +162,7 @@
     type: store.get('type', 'book'),
     platform: '小红书',
     tagIdx: 0,
+    copyIdx: 0,
     shots: emptyShots()
   };
   function emptyShots() { return { comment: [], data: [], upd: [] }; }
@@ -538,10 +583,44 @@
   }
 
   // ---------------- 活动页 ----------------
+  function currentCopy() {
+    var list = ACTS.act1.copies[state.type];
+    if (state.copyIdx >= list.length) state.copyIdx = 0;
+    return list[state.copyIdx];
+  }
+
+  function fillHtml(text) {
+    return esc(text).replace(/\{([^}]+)\}/g, function (_, key) {
+      return '<input class="fill-in" data-fill="' + esc(key) + '" placeholder="' + esc(key) + '" />';
+    });
+  }
+
+  function buildFilledCopy() {
+    var item = currentCopy();
+    var text = (item.title ? item.title + '\n' : '') + item.body;
+    return text.replace(/\{([^}]+)\}/g, function (_, key) {
+      var el = app.querySelector('input[data-fill="' + key.replace(/"/g, '\\"') + '"]');
+      var v = el && el.value.trim();
+      return v || '【' + key + '】';
+    });
+  }
+
+  function copyCard() {
+    var list = ACTS.act1.copies[state.type];
+    var item = currentCopy();
+    return '<div class="copy-item fillable">' +
+      '<div class="copy-bar"><span class="copy-dir">' + esc(item.dir) + '</span>' +
+        '<span class="copy-n">' + (state.copyIdx + 1) + ' / ' + list.length + '</span>' +
+        '<button type="button" class="btn ghost sm" data-swap-copy>换一换</button></div>' +
+      (item.title ? '<div class="copy-title">' + fillHtml(item.title) + '</div>' : '') +
+      '<div class="txt">' + fillHtml(item.body) + '</div>' +
+      (item.tip ? '<p class="copy-tip">' + esc(item.tip) + '</p>' : '') +
+      '<div class="ops"><button class="btn" data-copy-fill>复制文案</button></div>' +
+      '</div>';
+  }
+
   function renderAct1() {
     var a = ACTS.act1, t = state.type;
-    var copies = '<div class="copy-item"><div class="txt clamp3">' + esc(a.copies[t][0]) + '</div>' +
-      '<div class="ops"><button class="btn ghost" data-copy="0">复制文案</button></div></div>';
     var own = t === 'agent' ? '和智能体的聊天对话' : '喜欢的小说片段';
     var posters = '<div class="poster-one">' +
       '<div class="poster"><canvas width="360" height="480" data-poster="0"></canvas></div>' +
@@ -551,7 +630,7 @@
           '推荐截一张你' + own + '来发布，真实内容更容易获得点赞和收藏；暂时没有合适的截图，也可以直接使用官方配图。</div>' +
       '</div></div>';
     return introBanner(a) +
-      step(1, '领取素材 · 复制文案', '点击复制', copies) +
+      step(1, '领取素材 · 填写文案', '换一换切换模板', copyCard()) +
       step(2, '下载活动配图', '', posters) +
       step(3, '领取专属分享码', '', codeBody()) +
       step(4, '发布到社交平台', '', publishBody('将官方文案搭配你的截图（或官方配图）发布到小红书、抖音、快手等社交媒体平台，并在<b>帖子末尾</b>添加专属分享码。')) +
@@ -689,6 +768,7 @@
     var key = location.hash.replace('#/', '').replace('#', '');
     state.shots = emptyShots();
     state.tagIdx = 0;
+    state.copyIdx = 0;
     state.updOpen = false;
     if (ACTS[key]) renderAct(key);
     else if (key === 'rules') renderRules();
@@ -700,8 +780,9 @@
 
   // ---------------- 事件 ----------------
   function renderKeepingForm(act) {
-    var vals = {};
+    var vals = {}, fills = {};
     app.querySelectorAll('input[id]:not([type=file])').forEach(function (i) { vals[i.id] = i.value; });
+    app.querySelectorAll('input[data-fill]').forEach(function (i) { fills[i.getAttribute('data-fill')] = i.value; });
     if (act) renderAct(act, true);
     else {
       var top = screen.scrollTop;
@@ -711,6 +792,10 @@
     Object.keys(vals).forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.value = vals[id];
+    });
+    Object.keys(fills).forEach(function (k) {
+      var el = app.querySelector('input[data-fill="' + k.replace(/"/g, '\\"') + '"]');
+      if (el) el.value = fills[k];
     });
   }
 
@@ -743,7 +828,17 @@
     }
     if (el.hasAttribute('data-type')) {
       var t = el.getAttribute('data-type');
-      if (t !== state.type) { state.type = t; state.tagIdx = 0; store.set('type', t); renderKeepingForm(act); }
+      if (t !== state.type) { state.type = t; state.tagIdx = 0; state.copyIdx = 0; store.set('type', t); renderKeepingForm(act); }
+      return;
+    }
+    if (el.hasAttribute('data-swap-copy')) {
+      state.copyIdx = (state.copyIdx + 1) % ACTS.act1.copies[state.type].length;
+      renderKeepingForm(act);
+      toast('已切换文案');
+      return;
+    }
+    if (el.hasAttribute('data-copy-fill')) {
+      copyText(buildFilledCopy(), '已复制，记得把【】里的内容改成你的真实信息');
       return;
     }
     if (el.hasAttribute('data-get-code')) {
@@ -757,11 +852,6 @@
     }
     if (el.hasAttribute('data-copy-code')) {
       copyText(shareCode(), '已复制，请将分享码添加在' + el.getAttribute('data-copy-code') + '末尾');
-      return;
-    }
-    if (el.hasAttribute('data-copy')) {
-      var txt = ACTS.act1.copies[state.type][+el.getAttribute('data-copy')];
-      copyText(txt + (shareCode() ? '\n分享码：' + shareCode() : ''), shareCode() ? '已复制，分享码已附在文案末尾，请勿删除' : '已复制');
       return;
     }
     if (el.hasAttribute('data-dl')) {
